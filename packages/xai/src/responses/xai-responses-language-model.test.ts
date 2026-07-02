@@ -2298,6 +2298,81 @@ describe('XaiResponsesLanguageModel', () => {
         expect(parts).toMatchSnapshot();
       });
 
+      it('should emit final text from response.output_item.done after streaming', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_issue_13836',
+              object: 'response',
+              model: 'grok-4-1-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_issue_13836',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_issue_13836',
+            output_index: 0,
+            content_index: 0,
+            delta: '1. alfa beta gama\n',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_issue_13836',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: '2. delta epsilon zeta\nEND_OK_9981',
+                  annotations: [],
+                },
+              ],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_issue_13836',
+              object: 'response',
+              model: 'grok-4-1-fast-non-reasoning',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel(
+          'grok-4-1-fast-non-reasoning',
+        ).doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        expect(textDeltas.map(d => d.delta)).toEqual([
+          '1. alfa beta gama\n',
+          '2. delta epsilon zeta\nEND_OK_9981',
+        ]);
+      });
+
       it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
         prepareStreamChunks([
           JSON.stringify({
