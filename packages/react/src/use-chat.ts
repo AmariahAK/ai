@@ -128,12 +128,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
   }
 
+  const chat = chatRef.current;
+
   const subscribeToMessages = useCallback(
     (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    // `chatRef.current.id` is required to trigger re-subscription when the chat ID changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [throttleWaitMs, chatRef.current.id],
+      chat['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs, chat],
   );
 
   const messages = useSyncExternalStore(
