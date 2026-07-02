@@ -47,6 +47,17 @@ export {
   type LazySchema,
   type Schema,
 } from './schema';
+<<<<<<< HEAD
+=======
+export { serializeModelOptions } from './serialize-model-options';
+export { secureJsonParse } from './secure-json-parse';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
+export { stripFileExtension } from './strip-file-extension';
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579))
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';

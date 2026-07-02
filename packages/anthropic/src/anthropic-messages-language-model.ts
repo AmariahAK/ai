@@ -24,6 +24,18 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
+=======
+  resolveProviderReference,
+  secureJsonParse,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/anthropic-language-model.ts
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
@@ -1503,6 +1515,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         id: contentBlock.toolCallId,
                       });
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
                       // map tool names for the code execution 20250825 tool:
                       const toolName =
                         contentBlock.toolName ===
@@ -1510,6 +1523,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         contentBlock.toolName === 'bash_code_execution'
                           ? 'code_execution'
                           : contentBlock.toolName;
+=======
+                      // For code_execution, inject 'programmatic-tool-call' type
+                      // when input has { code } format (programmatic tool calling)
+                      let finalInput =
+                        contentBlock.input === '' ? '{}' : contentBlock.input;
+                      if (contentBlock.providerToolName === 'code_execution') {
+                        try {
+                          const parsed = secureJsonParse(finalInput);
+                          if (
+                            parsed != null &&
+                            typeof parsed === 'object' &&
+                            'code' in parsed &&
+                            !('type' in parsed)
+                          ) {
+                            finalInput = JSON.stringify({
+                              type: 'programmatic-tool-call',
+                              ...parsed,
+                            });
+                          }
+                        } catch {
+                          // ignore parse errors, use original input
+                        }
+                      }
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/anthropic-language-model.ts
 
                       controller.enqueue({
                         type: 'tool-call',
