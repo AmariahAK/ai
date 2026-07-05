@@ -4484,6 +4484,176 @@ describe('AnthropicLanguageModel', () => {
           }
         `);
       });
+
+      it('should place client tool_use after provider-executed code execution error result on follow-up turns', async () => {
+        prepareJsonFixtureResponse('anthropic-issue-11855-follow-up');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          maxOutputTokens: 32,
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Prepare the brief.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'I will inspect the website and run code.',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolu_issue11855_web_scraper',
+                  toolName: 'web_scraper',
+                  input: { url: 'https://example.com' },
+                  providerOptions: {
+                    anthropic: {
+                      caller: { type: 'direct' },
+                    },
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'srvtoolu_issue11855_code_execution',
+                  toolName: 'code_execution',
+                  input: {
+                    type: 'programmatic-tool-call',
+                    code: 'print("hello")',
+                  },
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'srvtoolu_issue11855_code_execution',
+                  toolName: 'code_execution',
+                  output: {
+                    type: 'error-json',
+                    value: JSON.stringify({
+                      type: 'code_execution_tool_result_error',
+                      errorCode: 'unavailable',
+                    }),
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolu_issue11855_web_scraper',
+                  toolName: 'web_scraper',
+                  output: {
+                    type: 'text',
+                    value: 'Example Domain page contents.',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'web_scraper',
+              description: undefined,
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string' },
+                },
+                required: ['url'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody).toMatchObject({
+          max_tokens: 32,
+          model: 'claude-sonnet-4-5',
+          tools: [
+            {
+              name: 'web_scraper',
+              input_schema: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string' },
+                },
+                required: ['url'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+            {
+              name: 'code_execution',
+              type: 'code_execution_20250825',
+            },
+          ],
+        });
+
+        expect(requestBody.messages[1].content).toEqual([
+          {
+            text: 'I will inspect the website and run code.',
+            type: 'text',
+          },
+          {
+            id: 'srvtoolu_issue11855_code_execution',
+            input: {
+              code: 'print("hello")',
+            },
+            name: 'code_execution',
+            type: 'server_tool_use',
+          },
+          {
+            content: {
+              error_code: 'unavailable',
+              type: 'code_execution_tool_result_error',
+            },
+            tool_use_id: 'srvtoolu_issue11855_code_execution',
+            type: 'code_execution_tool_result',
+          },
+          {
+            caller: {
+              type: 'direct',
+            },
+            id: 'toolu_issue11855_web_scraper',
+            input: {
+              url: 'https://example.com',
+            },
+            name: 'web_scraper',
+            type: 'tool_use',
+          },
+        ]);
+
+        expect(requestBody.messages[2].content).toEqual([
+          {
+            content: 'Example Domain page contents.',
+            tool_use_id: 'toolu_issue11855_web_scraper',
+            type: 'tool_result',
+          },
+        ]);
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "I need more information to prepare a brief for you. Could you please provide:
+
+          1. **What kind of brief** do you need? (project brief",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('agent skills', () => {
