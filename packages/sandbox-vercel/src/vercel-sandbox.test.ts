@@ -2,10 +2,18 @@ import type { Sandbox } from '@vercel/sandbox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
 
-const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
+const { createMock, getMock, getOrCreateMock } = vi.hoisted(() => ({
+  createMock: vi.fn(),
+  getMock: vi.fn(),
+  getOrCreateMock: vi.fn(),
+}));
 
 vi.mock('@vercel/sandbox', () => ({
-  Sandbox: { create: createMock },
+  Sandbox: {
+    create: createMock,
+    get: getMock,
+    getOrCreate: getOrCreateMock,
+  },
 }));
 
 type MockSpies = {
@@ -222,6 +230,13 @@ describe('createVercelSandbox (wrap existing)', () => {
 describe('createVercelSandbox (create from scratch)', () => {
   beforeEach(() => {
     createMock.mockReset();
+    getMock.mockReset();
+    getOrCreateMock.mockReset();
+    (
+      globalThis as {
+        [key: symbol]: Map<string, string> | undefined;
+      }
+    )[Symbol.for('ai-sdk.harness.vercel-template-snapshots')]?.clear();
   });
 
   it('applies a 30 minute default timeout when none is provided', async () => {
@@ -243,6 +258,64 @@ describe('createVercelSandbox (create from scratch)', () => {
     await createVercelSandbox({ timeout: 60_000 }).createSession();
 
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
+  });
+
+  it('forwards access-token credentials when resuming a named session', async () => {
+    const { sandbox } = makeMockSandbox();
+    getMock.mockResolvedValueOnce(sandbox);
+    const abortController = new AbortController();
+
+    const provider = createVercelSandbox({
+      token: 'vercel-token',
+      teamId: 'team_123',
+      projectId: 'prj_123',
+    });
+
+    await provider.resumeSession!({
+      sessionId: 'session-123',
+      abortSignal: abortController.signal,
+    });
+
+    expect(getMock).toHaveBeenCalledWith({
+      name: 'ai-sdk-harness-session-session-123',
+      token: 'vercel-token',
+      teamId: 'team_123',
+      projectId: 'prj_123',
+      signal: abortController.signal,
+    });
+  });
+
+  it('forwards access-token credentials when polling for a template snapshot', async () => {
+    const { sandbox: template } = makeMockSandbox({
+      stop: vi.fn(async () => ({})),
+    });
+    const { sandbox: refreshedTemplate } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: undefined });
+    Object.assign(refreshedTemplate, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    getMock.mockResolvedValueOnce(refreshedTemplate);
+    createMock.mockResolvedValueOnce(fork);
+    const abortController = new AbortController();
+
+    await createVercelSandbox({
+      token: 'vercel-token',
+      teamId: 'team_123',
+      projectId: 'prj_123',
+    }).createSession({
+      identity: 'issue-16695-template',
+      abortSignal: abortController.signal,
+      onFirstCreate: async () => {},
+    });
+
+    expect(getMock).toHaveBeenCalledWith({
+      name: 'ai-sdk-harness-issue-16695-template',
+      resume: false,
+      token: 'vercel-token',
+      teamId: 'team_123',
+      projectId: 'prj_123',
+      signal: abortController.signal,
+    });
   });
 
   it('destroy stops and deletes owned sandboxes', async () => {
