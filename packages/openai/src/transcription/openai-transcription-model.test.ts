@@ -7,7 +7,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { APICallError, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -71,6 +71,17 @@ function prepareJsonFixtureResponse(
         `src/transcription/__fixtures__/${filename}.json`,
         'utf8',
       ),
+    ),
+  };
+}
+
+function prepareJsonErrorFixtureResponse(filename: string, status = 400) {
+  server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+    type: 'error',
+    status,
+    body: fs.readFileSync(
+      `src/transcription/__fixtures__/${filename}.json`,
+      'utf8',
     ),
   };
 }
@@ -265,6 +276,41 @@ describe('doGenerate', () => {
         "response_format": "json",
         "temperature": "0",
         "timestamp_granularities[]": "word",
+      }
+    `);
+  });
+
+  it('should pass diarization chunking_strategy and response_format provider options', async () => {
+    prepareJsonErrorFixtureResponse('openai-diarize-verbose-json-error');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          openai: {
+            chunking_strategy: 'auto',
+            response_format: 'json',
+          } as any,
+        },
+      }),
+    ).rejects.toSatisfy(error => {
+      expect(APICallError.isInstance(error)).toBe(true);
+      expect(String((error as APICallError).responseBody)).toContain(
+        "response_format 'verbose_json' is not compatible",
+      );
+      return true;
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "auto",
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "json",
       }
     `);
   });
