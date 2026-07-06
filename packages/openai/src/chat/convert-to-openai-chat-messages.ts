@@ -94,21 +94,10 @@ export function convertToOpenAIChatMessages({
                   switch (part.mediaType) {
                     case 'audio/wav': {
                       return {
-<<<<<<< HEAD
                         type: 'input_audio',
                         input_audio: {
                           data: convertToBase64(part.data),
                           format: 'wav',
-=======
-                        type: 'image_url',
-                        image_url: {
-                          url:
-                            part.data.type === 'url'
-                              ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-
-                          detail: part.providerOptions?.openai?.imageDetail,
->>>>>>> b51ed36c00 (fix: send OpenAI chat image data as data URLs (#16655))
                         },
                       };
                     }
