@@ -8315,6 +8315,165 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should round-trip GPT-5.2 encrypted reasoning content across store=false tool steps', async () => {
+        const model = createModel('gpt-5.2');
+        const prompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text:
+                  'Use the lookupVerificationCode tool exactly once with label "issue-11239". ' +
+                  'After the tool result is returned, answer in one sentence and include the code.',
+              },
+            ],
+          },
+        ];
+        const tools: Array<LanguageModelV4FunctionTool> = [
+          {
+            type: 'function',
+            name: 'lookupVerificationCode',
+            description:
+              'Look up the short verification code that must be included in the final answer.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                label: { type: 'string' },
+              },
+              required: ['label'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+            strict: true,
+          },
+        ];
+        const providerOptions = {
+          openai: {
+            store: false,
+            reasoningEffort: 'low',
+            reasoningSummary: 'auto',
+          } satisfies OpenAILanguageModelResponsesOptions,
+        };
+
+        prepareChunksFixtureResponse('openai-issue-11239.1');
+
+        const firstResult = await model.doStream({
+          prompt,
+          tools,
+          providerOptions,
+          maxOutputTokens: 1200,
+          includeRawChunks: false,
+        });
+        const firstParts = await convertReadableStreamToArray(
+          firstResult.stream,
+        );
+
+        const reasoningEnd = [...firstParts]
+          .reverse()
+          .find(
+            (
+              part: LanguageModelV4StreamPart,
+            ): part is Extract<
+              LanguageModelV4StreamPart,
+              { type: 'reasoning-end' }
+            > => part.type === 'reasoning-end',
+          );
+        const toolCall = firstParts.find(
+          (part): part is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call',
+        );
+
+        expect(reasoningEnd?.providerMetadata?.openai).toMatchObject({
+          itemId: expect.stringMatching(/^rs_/),
+          reasoningEncryptedContent: expect.any(String),
+        });
+        expect(toolCall).toMatchObject({
+          toolCallId: expect.stringMatching(/^call_/),
+          toolName: 'lookupVerificationCode',
+          input: '{"label":"issue-11239"}',
+        });
+
+        prepareChunksFixtureResponse('openai-issue-11239.2');
+
+        const secondResult = await model.doStream({
+          prompt: [
+            ...prompt,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: '',
+                  providerOptions: {
+                    openai: reasoningEnd!.providerMetadata!.openai,
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCall!.toolCallId,
+                  toolName: toolCall!.toolName,
+                  input: JSON.parse(toolCall!.input),
+                  providerOptions: {
+                    openai: toolCall!.providerMetadata!.openai,
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: toolCall!.toolCallId,
+                  toolName: toolCall!.toolName,
+                  output: {
+                    type: 'json',
+                    value: { label: 'issue-11239', code: 'blue-42' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools,
+          providerOptions,
+          maxOutputTokens: 1200,
+          includeRawChunks: false,
+        });
+        const secondParts = await convertReadableStreamToArray(
+          secondResult.stream,
+        );
+
+        expect(secondParts.some(part => part.type === 'error')).toBe(false);
+        expect(
+          secondParts
+            .filter(part => part.type === 'text-delta')
+            .map(part => part.delta)
+            .join(''),
+        ).toContain('blue-42');
+
+        const secondRequestBody = await server.calls[1].requestBodyJson;
+        const reasoningItem = secondRequestBody.input.find(
+          (item: any) => item.type === 'reasoning',
+        );
+
+        expect(reasoningItem).toMatchObject({
+          type: 'reasoning',
+          id: reasoningEnd!.providerMetadata!.openai!.itemId,
+          encrypted_content:
+            reasoningEnd!.providerMetadata!.openai!
+              .reasoningEncryptedContent,
+          summary: [],
+        });
+        expect(secondRequestBody.input).toContainEqual({
+          type: 'function_call_output',
+          call_id: toolCall!.toolCallId,
+          output: JSON.stringify({ label: 'issue-11239', code: 'blue-42' }),
+        });
+      });
+
       it('should stream with encrypted content include reasoning-delta part', async () => {
         prepareChunksFixtureResponse('openai-reasoning-encrypted-content.1');
         const { stream } = await createModel('gpt-5.1-codex-max').doStream({
