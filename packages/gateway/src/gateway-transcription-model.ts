@@ -132,10 +132,8 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
     );
     const authMethod = await parseAuthMethod(headers);
 
-    // The session start frame is the first frame sent after the WebSocket
-    // opens, per the transcription-stream envelope. Optional keys are omitted
-    // (not sent as `undefined`/`null`) so the serialized frame stays minimal
-    // and unambiguous.
+    // First frame after the WebSocket opens, per the transcription-stream
+    // envelope. Optional keys are omitted so the frame stays minimal.
     const startFrame: Experimental_TranscriptionStreamStartFrame = {
       type: TRANSCRIPTION_STREAM_START_FRAME_TYPE,
       inputAudioFormat: options.inputAudioFormat,
@@ -176,11 +174,9 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
 }
 
 /**
- * Build the Gateway streaming transcription WebSocket URL. The HTTP(S) base URL
- * is upgraded to WS(S) and the model id rides the `?ai-model-id=` query — the
- * WS transport of the `ai-model-id` header the HTTP routes use, since a browser
- * `WebSocket` cannot set headers. The query is slash-safe for qualified ids
- * such as `openai/gpt-realtime-whisper`.
+ * Gateway streaming transcription WebSocket URL: HTTP(S) base upgraded to
+ * WS(S), model id in `?ai-model-id=` (browser `WebSocket` cannot set headers;
+ * slash-safe for qualified ids like `openai/gpt-realtime-whisper`).
  */
 function toGatewayTranscriptionUrl(baseURL: string, modelId: string): string {
   const url = new URL(`${baseURL.replace(/^http/, 'ws')}/transcription-model`);
@@ -189,10 +185,9 @@ function toGatewayTranscriptionUrl(baseURL: string, modelId: string): string {
 }
 
 /**
- * Derive the auth-carrying WebSocket subprotocols from the resolved request
- * headers: the bearer token from `Authorization` and the optional team scope
- * from `x-vercel-ai-gateway-team`. Native `WebSocket` cannot send headers, so
- * auth rides the `Sec-WebSocket-Protocol` handshake instead.
+ * Auth-carrying subprotocols from the resolved request headers (bearer token
+ * + optional team scope). Native `WebSocket` cannot send headers, so auth
+ * rides the `Sec-WebSocket-Protocol` handshake.
  */
 function getProtocolsFromHeaders(
   headers: Record<string, string | undefined>,
@@ -269,9 +264,8 @@ function createGatewayTranscriptionStream({
       let socket: WebSocketLike;
       try {
         const WebSocketConstructor = getWebSocketConstructor(webSocket);
-        // Headers cannot be sent by native `WebSocket` implementations (auth
-        // rides the subprotocols instead), but header-capable implementations
-        // like the `ws` package forward them.
+        // Native `WebSocket` ignores headers (auth rides the subprotocols);
+        // header-capable implementations like `ws` forward them.
         socket = new WebSocketConstructor(url, protocols, { headers });
       } catch (error) {
         finishWithError(error);
@@ -285,8 +279,7 @@ function createGatewayTranscriptionStream({
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
-            // Audio is sent as binary WebSocket frames; base64 string chunks
-            // are decoded to raw bytes first.
+            // Binary frames; base64 string chunks are decoded first.
             socket.send(
               typeof value === 'string'
                 ? convertBase64ToUint8Array(value)
@@ -310,10 +303,8 @@ function createGatewayTranscriptionStream({
         void sendAudio().catch(finishWithError);
       };
 
-      // The Gateway emits normalized AI SDK transcription stream parts,
-      // serialized per the shared transcription-stream envelope; the codec
-      // handles JSON parsing, unknown-part skipping (forward compatibility),
-      // and `response-metadata` timestamp revival.
+      // Server frames are envelope-serialized stream parts; the codec handles
+      // parsing, unknown-part skipping, and timestamp revival.
       socket.onmessage = event => {
         void readWebSocketMessageText(event.data)
           .then(text => {
@@ -335,8 +326,6 @@ function createGatewayTranscriptionStream({
       };
 
       socket.onerror = () => {
-        // Auth rides the subprotocols, so a header-capable WebSocket
-        // implementation is not required; this is a plain connection failure.
         finishWithError(
           new Error('Connection error on AI Gateway transcription stream'),
         );
@@ -403,9 +392,8 @@ const gatewayTranscriptionResponseSchema = z.object({
 });
 
 /**
- * Errors the stream controller with the gateway-conventional wrapping of
- * `error`. Extracted because `asGatewayError` is async while the WebSocket
- * event handlers are synchronous.
+ * `asGatewayError` is async while the WebSocket event handlers are
+ * synchronous, hence this helper.
  */
 async function errorControllerWithGatewayError(
   controller: ReadableStreamDefaultController<TranscriptionModelV4StreamPart>,

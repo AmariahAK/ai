@@ -28,9 +28,8 @@
 export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime.v1';
 
 /**
- * Marker subprotocol offered on every streaming transcription handshake,
- * identifying the Gateway transcription wire protocol version. Serves the same
- * negotiation purpose as `GATEWAY_REALTIME_SUBPROTOCOL` does for realtime.
+ * Marker subprotocol for streaming transcription handshakes (same negotiation
+ * purpose as `GATEWAY_REALTIME_SUBPROTOCOL`).
  */
 export const GATEWAY_TRANSCRIPTION_SUBPROTOCOL = 'ai-gateway-transcription.v1';
 
@@ -63,9 +62,8 @@ export function getGatewayRealtimeProtocols(
 }
 
 /**
- * Client-side: build the WebSocket subprotocols that carry `token` to the
- * Gateway streaming transcription route. Identical to
- * `getGatewayRealtimeProtocols` except for the marker subprotocol.
+ * Client-side: `getGatewayRealtimeProtocols`, but with the streaming
+ * transcription marker subprotocol.
  */
 export function getGatewayTranscriptionProtocols(
   token: string,

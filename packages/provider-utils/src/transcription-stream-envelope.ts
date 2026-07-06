@@ -12,83 +12,56 @@ import type {
  * Envelope rules:
  *
  * 1. The client sends exactly one `transcription-stream.start` TEXT frame
- *    first, describing the audio format and pass-through options.
+ *    first.
  * 2. Audio rides BINARY frames containing raw bytes in the declared
- *    `inputAudioFormat`; base64 string chunks from the model-facing API are
- *    decoded to bytes before sending.
+ *    `inputAudioFormat` (base64 string chunks are decoded before sending).
  * 3. The client signals end of audio with the
  *    `transcription-stream.audio-done` TEXT frame; a plain close without it
  *    is an abort.
  * 4. Every server→client TEXT frame is one JSON-serialized
- *    `TranscriptionModelV4StreamPart` (flattened, no wrapper — part types
- *    cannot collide with the namespaced client frame names).
+ *    `TranscriptionModelV4StreamPart` (flattened, no wrapper). `Date` values
+ *    (`response-metadata.timestamp`) serialize to ISO 8601 strings and are
+ *    revived by `parseTranscriptionStreamPart`.
  * 5. The server closes with code 1000 after the `finish` part; on failure it
- *    sends an `error` part and then closes with a non-1000 code. A close
- *    without a prior `finish` is an error.
+ *    sends an `error` part and closes non-1000. A close without a prior
+ *    `finish` is an error.
  * 6. Unknown frame/part types are ignored in both directions (forward
  *    compatibility).
  * 7. Connection establishment (URL, auth) is transport-specific and out of
- *    scope (e.g. `@ai-sdk/gateway` carries auth in WebSocket subprotocols).
+ *    scope.
  *
- * Serialization contract: parts are serialized with `JSON.stringify`, so
- * `Date` values (`response-metadata.timestamp`) become ISO 8601 strings via
- * `Date#toJSON`; `parseTranscriptionStreamPart` revives them back to `Date`.
- *
- * The envelope validates frame shape only. Server policy concerns — which
- * audio format types are accepted, whether `rate` is required, size limits —
- * are layered on top by implementations.
+ * The envelope validates frame shape only; server policy (accepted audio
+ * formats, required `rate`, size limits) layers on top.
  */
 
-/**
- * Type of the first client TEXT frame, sent once after the WebSocket opens.
- */
+/** Type of the first client TEXT frame. */
 export const TRANSCRIPTION_STREAM_START_FRAME_TYPE =
   'transcription-stream.start';
 
-/**
- * Type of the client TEXT frame that signals the end of the audio input.
- */
+/** Type of the client TEXT frame that signals the end of the audio input. */
 export const TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE =
   'transcription-stream.audio-done';
 
 /**
- * The client's session start frame: the first frame after the WebSocket
- * opens. Optional keys are omitted when undefined (never serialized as
- * `null`/`undefined`).
+ * The client's session start frame. Optional keys are omitted when undefined.
  */
 export type Experimental_TranscriptionStreamStartFrame = {
   type: typeof TRANSCRIPTION_STREAM_START_FRAME_TYPE;
 
-  /**
-   * The audio format of the binary audio frames, passed through verbatim
-   * from the `doStream` options.
-   */
+  /** Audio format of the binary audio frames, e.g. `{ type: 'audio/pcm', rate: 16000 }`. */
   inputAudioFormat: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
     type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
     rate?: number;
   };
 
-  /**
-   * Provider-specific options, passed through verbatim.
-   */
+  /** Provider-specific options, passed through verbatim. */
   providerOptions?: Record<string, JSONObject>;
 
-  /**
-   * When true, the server should include `raw` parts in the stream.
-   */
+  /** When true, the server should include `raw` parts in the stream. */
   includeRawChunks?: boolean;
 };
 
-/**
- * Server-side classification of a client TEXT frame.
- */
+/** Server-side classification of a client TEXT frame. */
 export type Experimental_TranscriptionStreamClientFrame =
   | {
       type: 'start';
@@ -98,17 +71,12 @@ export type Experimental_TranscriptionStreamClientFrame =
       type: 'audio-done';
     }
   | {
-      /**
-       * Malformed JSON or a recognized frame with an invalid shape.
-       */
+      /** Malformed JSON or a recognized frame with an invalid shape. */
       type: 'invalid';
       message: string;
     }
   | {
-      /**
-       * Well-formed JSON with an unrecognized frame type. Ignore for forward
-       * compatibility.
-       */
+      /** Unrecognized frame type; ignore for forward compatibility. */
       type: 'unknown';
     };
 
@@ -124,10 +92,8 @@ const knownStreamPartTypes = new Set<TranscriptionModelV4StreamPart['type']>([
 ]);
 
 /**
- * Server-side: parse a client TEXT frame. Validates the envelope shape only
- * (it does not restrict audio format types or require `rate` — server policy
- * layers on top). Never throws: malformed input yields an `invalid` frame,
- * and unrecognized frame types yield `unknown`.
+ * Server-side: parse a client TEXT frame. Validates envelope shape only.
+ * Never throws.
  */
 export function parseTranscriptionStreamClientFrame(
   text: string,
@@ -210,12 +176,7 @@ export function parseTranscriptionStreamClientFrame(
   }
 }
 
-/**
- * Server-side: serialize a transcription stream part as one TEXT frame.
- * Uses `JSON.stringify`, so `Date` values (`response-metadata.timestamp`)
- * become ISO 8601 strings via `Date#toJSON` — the documented wire format
- * that `parseTranscriptionStreamPart` revives.
- */
+/** Server-side: serialize a transcription stream part as one TEXT frame. */
 export function serializeTranscriptionStreamPart(
   part: TranscriptionModelV4StreamPart,
 ): string {
@@ -224,10 +185,8 @@ export function serializeTranscriptionStreamPart(
 
 /**
  * Client-side: parse a server TEXT frame into a transcription stream part.
- * Returns `undefined` for malformed JSON and for unknown part types
- * (forward compatibility). Part internals are intentionally not validated
- * beyond a known `type`; `response-metadata.timestamp` is revived from its
- * ISO string serialization to a `Date`.
+ * Returns `undefined` for malformed JSON and unknown part types. Revives
+ * `response-metadata.timestamp` to a `Date`.
  */
 export function parseTranscriptionStreamPart(
   text: string,
