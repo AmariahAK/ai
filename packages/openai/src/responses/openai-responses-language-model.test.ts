@@ -1910,6 +1910,39 @@ describe('OpenAIResponsesLanguageModel', () => {
           'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
         );
       });
+
+      it('issue #11701: should support generateText output schemas whose root is an array', async () => {
+        prepareJsonFixtureResponse('issue-11701-output-array-schema.1');
+
+        await expect(
+          createModel('gpt-4o-mini').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Return 3 random words' }],
+              },
+            ],
+            responseFormat: {
+              type: 'json',
+              schema: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    word: { type: 'string' },
+                    category: { type: 'string' },
+                  },
+                  required: ['word', 'category'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          }),
+        ).resolves.toMatchObject({
+          content: expect.any(Array),
+        });
+      });
     });
 
     describe('reasoning', () => {
