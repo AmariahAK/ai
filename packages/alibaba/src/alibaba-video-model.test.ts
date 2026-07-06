@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { AlibabaVideoModel } from './alibaba-video-model';
@@ -7,6 +8,40 @@ const prompt = 'A serene mountain lake at sunset with gentle ripples';
 const TEST_BASE_URL = 'https://dashscope-intl.aliyuncs.com';
 const CREATE_URL = `${TEST_BASE_URL}/api/v1/services/aigc/video-generation/video-synthesis`;
 const TASK_URL = `${TEST_BASE_URL}/api/v1/tasks/task-abc-123`;
+
+const issue16663Fixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/issue-16663-wan27-unsupported-resolution-ratio-live.json',
+    'utf8',
+  ),
+) as {
+  calls: [
+    {
+      response: {
+        body: {
+          request_id: string;
+          output: { task_id: string; task_status: string };
+        };
+      };
+    },
+    {
+      response: {
+        body: {
+          request_id: string;
+          output: {
+            task_id: string;
+            task_status: string;
+            submit_time: string;
+            scheduled_time: string;
+          };
+        };
+      };
+    },
+  ];
+};
+
+const issue16663CreateTaskResponse = issue16663Fixture.calls[0].response.body;
+const ISSUE_16663_TASK_URL = `${TEST_BASE_URL}/api/v1/tasks/${issue16663CreateTaskResponse.output.task_id}`;
 
 const createTaskResponse = {
   output: {
@@ -82,6 +117,12 @@ describe('AlibabaVideoModel', () => {
     },
     [TASK_URL]: {
       response: { type: 'json-value', body: succeededTaskResponse },
+    },
+    [ISSUE_16663_TASK_URL]: {
+      response: {
+        type: 'json-value',
+        body: issue16663Fixture.calls[1].response.body,
+      },
     },
   });
 
@@ -935,6 +976,37 @@ describe('AlibabaVideoModel', () => {
         },
       });
       expect(body.parameters).not.toHaveProperty('size');
+    });
+
+    it('should not derive ratio from an unsupported resolution', async () => {
+      const originalCreateResponse = server.urls[CREATE_URL].response;
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: issue16663CreateTaskResponse,
+      };
+
+      try {
+        const model = createModel({ modelId: 'wan2.7-t2v' });
+
+        await model
+          .doGenerate({
+            ...defaultOptions,
+            resolution: '1024x768',
+            providerOptions: {
+              alibaba: {
+                pollIntervalMs: 10,
+                pollTimeoutMs: 25,
+              },
+            },
+          })
+          .catch(() => undefined);
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).not.toHaveProperty('resolution');
+        expect(body.parameters).not.toHaveProperty('ratio');
+      } finally {
+        server.urls[CREATE_URL].response = originalCreateResponse;
+      }
     });
 
     it('should map aspectRatio to ratio without warning', async () => {

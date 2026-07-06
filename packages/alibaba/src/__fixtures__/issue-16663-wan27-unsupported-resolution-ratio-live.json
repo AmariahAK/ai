@@ -1,0 +1,85 @@
+{
+  "source": "live Alibaba DashScope call via examples/ai-functions/src/reproduction/issue-16663-alibaba-wan27-unsupported-resolution-ratio-live.ts",
+  "model": "wan2.7-t2v",
+  "prompt": "A serene mountain lake at sunset",
+  "resolution": "1024x768",
+  "observedAt": "2026-07-07T01:01:50+08:00",
+  "outcome": "rejected",
+  "error": {
+    "name": "ALIBABA_VIDEO_GENERATION_TIMEOUT",
+    "message": "Video generation timed out after 1500ms"
+  },
+  "calls": [
+    {
+      "url": "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis",
+      "method": "POST",
+      "requestBody": {
+        "model": "wan2.7-t2v",
+        "input": {
+          "prompt": "A serene mountain lake at sunset"
+        },
+        "parameters": {
+          "ratio": "4:3"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "request_id": "1bc646c3-2eb6-9217-98dd-fd9316823335",
+          "output": {
+            "task_id": "09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+            "task_status": "PENDING"
+          }
+        }
+      }
+    },
+    {
+      "url": "https://dashscope-intl.aliyuncs.com/api/v1/tasks/09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+      "method": "GET",
+      "response": {
+        "status": 200,
+        "body": {
+          "request_id": "6bd1b453-e0ee-9029-98b0-bd0701914a39",
+          "output": {
+            "task_id": "09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+            "task_status": "RUNNING",
+            "submit_time": "2026-07-07 01:01:50.411",
+            "scheduled_time": "2026-07-07 01:01:50.446"
+          }
+        }
+      }
+    },
+    {
+      "url": "https://dashscope-intl.aliyuncs.com/api/v1/tasks/09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+      "method": "GET",
+      "response": {
+        "status": 200,
+        "body": {
+          "request_id": "4a726420-e9b8-98e6-a7b9-4aa31d9a6040",
+          "output": {
+            "task_id": "09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+            "task_status": "RUNNING",
+            "submit_time": "2026-07-07 01:01:50.411",
+            "scheduled_time": "2026-07-07 01:01:50.446"
+          }
+        }
+      }
+    },
+    {
+      "url": "https://dashscope-intl.aliyuncs.com/api/v1/tasks/09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+      "method": "GET",
+      "response": {
+        "status": 200,
+        "body": {
+          "request_id": "10caa0fc-095b-9f58-8f05-e6b7ae591f84",
+          "output": {
+            "task_id": "09523ea5-bbe6-4e10-9d18-ae482b5ac69b",
+            "task_status": "RUNNING",
+            "submit_time": "2026-07-07 01:01:50.411",
+            "scheduled_time": "2026-07-07 01:01:50.446"
+          }
+        }
+      }
+    }
+  ]
+}
