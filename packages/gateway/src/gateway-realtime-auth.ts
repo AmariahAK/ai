@@ -1,5 +1,6 @@
 /**
- * Shared WebSocket subprotocol contract for AI Gateway realtime auth.
+ * Shared WebSocket subprotocol contract for AI Gateway realtime and streaming
+ * transcription auth.
  *
  * The browser `WebSocket` API cannot set request headers, so the Gateway auth
  * (bearer) token is carried through the `Sec-WebSocket-Protocol` handshake
@@ -8,8 +9,9 @@
  *
  * This module is the single source of truth for that contract so the client and
  * the Gateway server can't drift: the client encodes values with
- * `getGatewayRealtimeProtocols`, and the Gateway server decodes them with
- * `getGatewayRealtimeAuthToken` / `getGatewayRealtimeTeamIdOrSlug`.
+ * `getGatewayRealtimeProtocols` / `getGatewayTranscriptionProtocols`, and the
+ * Gateway server decodes them with `getGatewayRealtimeAuthToken` /
+ * `getGatewayRealtimeTeamIdOrSlug`.
  *
  * WebSocket subprotocol values must fit the RFC token grammar. The auth token is
  * sent as-is, so callers must use tokens that are valid subprotocol tokens; the
@@ -19,11 +21,18 @@
  */
 
 /**
- * Marker subprotocol offered on every handshake so the Gateway can echo a
- * negotiated subprotocol on the 101 response (some clients require the server to
- * select one of the offered subprotocols).
+ * Marker subprotocol offered on every realtime handshake so the Gateway can
+ * echo a negotiated subprotocol on the 101 response (some clients require the
+ * server to select one of the offered subprotocols).
  */
 export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime.v1';
+
+/**
+ * Marker subprotocol offered on every streaming transcription handshake,
+ * identifying the Gateway transcription wire protocol version. Serves the same
+ * negotiation purpose as `GATEWAY_REALTIME_SUBPROTOCOL` does for realtime.
+ */
+export const GATEWAY_TRANSCRIPTION_SUBPROTOCOL = 'ai-gateway-transcription.v1';
 
 /** Subprotocol prefix that carries the Gateway auth (bearer) token. */
 export const GATEWAY_AUTH_SUBPROTOCOL_PREFIX = 'ai-gateway-auth.';
@@ -41,6 +50,29 @@ export function getGatewayRealtimeProtocols(
 ): string[] {
   const protocols = [
     GATEWAY_REALTIME_SUBPROTOCOL,
+    `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`,
+  ];
+
+  if (options?.teamIdOrSlug) {
+    protocols.push(
+      `${GATEWAY_TEAM_SUBPROTOCOL_PREFIX}${encodeSubprotocolValue(options.teamIdOrSlug)}`,
+    );
+  }
+
+  return protocols;
+}
+
+/**
+ * Client-side: build the WebSocket subprotocols that carry `token` to the
+ * Gateway streaming transcription route. Identical to
+ * `getGatewayRealtimeProtocols` except for the marker subprotocol.
+ */
+export function getGatewayTranscriptionProtocols(
+  token: string,
+  options?: { teamIdOrSlug?: string },
+): string[] {
+  const protocols = [
+    GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
     `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`,
   ];
 
