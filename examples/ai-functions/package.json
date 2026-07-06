@@ -69,6 +69,8 @@
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/sandbox": "^2.0.1",
     "ai": "workspace:*",
+    "ai-backend-5-0-114": "npm:ai@5.0.114",
+    "ai-frontend-5-0-53": "npm:ai@5.0.53",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
     "effect": "3.21.3",
