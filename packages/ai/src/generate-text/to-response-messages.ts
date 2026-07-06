@@ -21,7 +21,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
   const toolCallOrder = new Map<string, number>();
 
-<<<<<<< HEAD
   const content: AssistantContent = inputContent
     .filter(part => part.type !== 'source')
     .filter(
@@ -52,6 +51,9 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             providerOptions: part.providerMetadata,
           };
         case 'tool-call':
+          if (!toolCallOrder.has(part.toolCallId)) {
+            toolCallOrder.set(part.toolCallId, toolCallOrder.size);
+          }
           return {
             type: 'tool-call',
             toolCallId: part.toolCallId,
@@ -85,96 +87,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             }),
             providerOptions: part.providerMetadata,
           };
-=======
-  const content: AssistantContent = [];
-  for (const part of inputContent) {
-    // Skip sources - they are response-only content that no provider expects back
-    if (part.type === 'source') {
-      continue;
-    }
-
-    // Skip non-provider-executed tool results/errors (they go in the tool message)
-    if (
-      (part.type === 'tool-result' || part.type === 'tool-error') &&
-      !part.providerExecuted
-    ) {
-      continue;
-    }
-
-    // Skip empty text
-    if (part.type === 'text' && part.text.length === 0) {
-      continue;
-    }
-
-    switch (part.type) {
-      case 'text':
-        content.push({
-          type: 'text',
-          text: part.text,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'custom':
-        content.push({
-          type: 'custom',
-          kind: part.kind,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'reasoning':
-        content.push({
-          type: 'reasoning',
-          text: part.text,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'file':
-        content.push({
-          type: 'file',
-          data: part.file.base64,
-          mediaType: part.file.mediaType,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'reasoning-file':
-        content.push({
-          type: 'reasoning-file',
-          data: part.file.base64,
-          mediaType: part.file.mediaType,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'tool-call':
-        if (!toolCallOrder.has(part.toolCallId)) {
-          toolCallOrder.set(part.toolCallId, toolCallOrder.size);
-        }
-        content.push({
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input:
-            part.invalid && typeof part.input !== 'object' ? {} : part.input,
-          providerExecuted: part.providerExecuted,
-          providerOptions: part.providerMetadata,
-        });
-        break;
-      case 'tool-result': {
-        const output = await createToolModelOutput({
-          toolCallId: part.toolCallId,
-          input: part.input,
-          tool: tools?.[part.toolName],
-          output: part.output,
-          errorMode: 'none',
-        });
-        content.push({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output,
-          providerOptions: part.providerMetadata,
-        });
-        break;
->>>>>>> ecfeb6f7b (fix: Parallel tool results are serialized in completion order, silently breaking provider prompt caching (#16578))
       }
     });
 

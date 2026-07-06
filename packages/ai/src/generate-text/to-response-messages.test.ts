@@ -256,12 +256,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-<<<<<<< HEAD
-  it('should handle undefined text', () => {
+  it('should serialize parallel tool results in tool call order', () => {
     const result = toResponseMessages({
-=======
-  it('should serialize parallel tool results in tool call order', async () => {
-    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -319,9 +315,8 @@ describe('toResponseMessages', () => {
     ).toEqual(['call-a', 'call-b']);
   });
 
-  it('should handle undefined text', async () => {
-    const result = await toResponseMessages({
->>>>>>> ecfeb6f7b (fix: Parallel tool results are serialized in completion order, silently breaking provider prompt caching (#16578))
+  it('should handle undefined text', () => {
+    const result = toResponseMessages({
       content: [
         {
           type: 'reasoning',
