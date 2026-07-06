@@ -152,9 +152,9 @@ describe('GatewayModelMetrics', () => {
                 },
               },
               uptime: {
-                last_15m: 1,
-                last_1h: 0.999,
-                last_1d: 0.997,
+                last_15m: 100,
+                last_1h: 99.9,
+                last_1d: 99.7,
                 meta: {
                   source: 'observed',
                   window: 'hourly',
@@ -207,9 +207,9 @@ describe('GatewayModelMetrics', () => {
           },
         },
         uptime: {
-          last15m: 1,
-          last1h: 0.999,
-          last1d: 0.997,
+          last15m: 100,
+          last1h: 99.9,
+          last1d: 99.7,
           meta: {
             source: 'observed',
             window: 'hourly',
@@ -262,6 +262,35 @@ describe('GatewayModelMetrics', () => {
       });
     });
 
+    it('should normalize omitted metric groups to null (forward compatibility)', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          object: 'list',
+          data: [
+            {
+              id: 'openai/gpt-5.2',
+              name: 'GPT-5.2',
+              provider: null,
+              type: 'language',
+              pricing: {
+                meta: { source: 'declared' },
+              },
+              // No latency_last_1h / throughput_last_1h / uptime keys at all
+            },
+          ],
+          meta: responseMeta,
+        },
+      };
+
+      const metrics = createModelMetrics();
+      const result = await metrics.getModelMetrics();
+
+      expect(result.data[0].latency).toBeNull();
+      expect(result.data[0].throughput).toBeNull();
+      expect(result.data[0].uptime).toBeNull();
+    });
+
     it('should handle uptime windows without data yet', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
@@ -282,8 +311,8 @@ describe('GatewayModelMetrics', () => {
               throughput_last_1h: null,
               uptime: {
                 last_15m: null,
-                last_1h: 0.98,
-                last_1d: 0.999,
+                last_1h: 98,
+                last_1d: 99.9,
                 meta: { source: 'observed', window: 'hourly' },
               },
             },
@@ -297,8 +326,8 @@ describe('GatewayModelMetrics', () => {
 
       expect(result.data[0].uptime).toEqual({
         last15m: null,
-        last1h: 0.98,
-        last1d: 0.999,
+        last1h: 98,
+        last1d: 99.9,
         meta: { source: 'observed', window: 'hourly' },
       });
     });

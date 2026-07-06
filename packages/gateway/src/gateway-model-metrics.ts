@@ -77,7 +77,7 @@ export interface GatewayModelMetricsRow {
     p95: number;
     meta: GatewayModelMetricMeta;
   } | null;
-  /** Success rate over trailing windows. */
+  /** Uptime success percentages (0-100) over trailing windows. */
   uptime: {
     last15m: number | null;
     last1h: number | null;
@@ -189,20 +189,23 @@ const gatewayModelMetricsResponseSchema = lazySchema(() =>
               output: z.string().optional(),
               meta: gatewayModelMetricMetaSchema,
             }),
+            // Metric groups are nullish (not just nullable) for forward
+            // compatibility: if the gateway ever omits a group key instead
+            // of sending null, older SDK versions keep parsing.
             latency_last_1h: z
               .object({
                 p50: z.number(),
                 p95: z.number(),
                 meta: gatewayModelMetricMetaSchema,
               })
-              .nullable(),
+              .nullish(),
             throughput_last_1h: z
               .object({
                 p50: z.number(),
                 p95: z.number(),
                 meta: gatewayModelMetricMetaSchema,
               })
-              .nullable(),
+              .nullish(),
             uptime: z
               .object({
                 last_15m: z.number().nullable(),
@@ -216,13 +219,16 @@ const gatewayModelMetricsResponseSchema = lazySchema(() =>
                 last1d: last_1d,
                 meta,
               }))
-              .nullable(),
+              .nullish(),
           })
-          .transform(({ latency_last_1h, throughput_last_1h, ...rest }) => ({
-            ...rest,
-            latency: latency_last_1h,
-            throughput: throughput_last_1h,
-          })),
+          .transform(
+            ({ latency_last_1h, throughput_last_1h, uptime, ...rest }) => ({
+              ...rest,
+              latency: latency_last_1h ?? null,
+              throughput: throughput_last_1h ?? null,
+              uptime: uptime ?? null,
+            }),
+          ),
       ),
       meta: z
         .object({
