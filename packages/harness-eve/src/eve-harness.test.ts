@@ -500,9 +500,7 @@ describe('createEve adapter', () => {
         sessionId: 'session-1',
         sandboxSession: {} as never,
         sessionWorkDir: '/tmp/eve',
-        ...({
-          builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
-        } as { readonly builtinToolFiltering: unknown }),
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
 

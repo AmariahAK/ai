@@ -182,11 +182,7 @@ export function createEve(
         skills: startOpts.skills ?? [],
       });
       assertNoBuiltinToolFiltering({
-        builtinToolFiltering: (
-          startOpts as {
-            readonly builtinToolFiltering?: unknown;
-          }
-        ).builtinToolFiltering,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
       });
 
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
