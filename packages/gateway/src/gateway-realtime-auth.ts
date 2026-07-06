@@ -47,18 +47,7 @@ export function getGatewayRealtimeProtocols(
   token: string,
   options?: { teamIdOrSlug?: string },
 ): string[] {
-  const protocols = [
-    GATEWAY_REALTIME_SUBPROTOCOL,
-    `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`,
-  ];
-
-  if (options?.teamIdOrSlug) {
-    protocols.push(
-      `${GATEWAY_TEAM_SUBPROTOCOL_PREFIX}${encodeSubprotocolValue(options.teamIdOrSlug)}`,
-    );
-  }
-
-  return protocols;
+  return buildGatewayProtocols(GATEWAY_REALTIME_SUBPROTOCOL, token, options);
 }
 
 /**
@@ -69,10 +58,19 @@ export function getGatewayTranscriptionProtocols(
   token: string,
   options?: { teamIdOrSlug?: string },
 ): string[] {
-  const protocols = [
+  return buildGatewayProtocols(
     GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
-    `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`,
-  ];
+    token,
+    options,
+  );
+}
+
+function buildGatewayProtocols(
+  marker: string,
+  token: string,
+  options?: { teamIdOrSlug?: string },
+): string[] {
+  const protocols = [marker, `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`];
 
   if (options?.teamIdOrSlug) {
     protocols.push(

@@ -345,6 +345,28 @@ describe('GatewayTranscriptionModel', () => {
       ]);
     });
 
+    it('should derive the subprotocols from headers case-insensitively', async () => {
+      const model = createStreamingTestModel({
+        headers: () => ({
+          AUTHORIZATION: 'Bearer test-token',
+          'ai-gateway-auth-method': 'api-key',
+          'X-Vercel-AI-Gateway-Team': 'team1',
+        }),
+      });
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      void result.stream.cancel();
+      expect(MockWebSocket.instances[0].protocols).toEqual([
+        'ai-gateway-transcription.v1',
+        'ai-gateway-auth.test-token',
+        `ai-gateway-team.${Buffer.from('team1').toString('base64url')}`,
+      ]);
+    });
+
     it('should pass the resolved headers to header-capable WebSocket implementations', async () => {
       const model = createStreamingTestModel();
 
@@ -552,7 +574,7 @@ describe('GatewayTranscriptionModel', () => {
       ]);
     });
 
-    it('should relay error parts and error the stream when the socket closes without finish', async () => {
+    it('should relay error parts and surface the server message when the socket closes without finish', async () => {
       const model = createStreamingTestModel();
 
       const result = await model.doStream({
@@ -565,10 +587,10 @@ describe('GatewayTranscriptionModel', () => {
       ws.open();
       await flush();
 
-      ws.message({ type: 'error', error: 'model overloaded' });
+      ws.message({ type: 'error', error: { message: 'model overloaded' } });
       await expect(reader.read()).resolves.toEqual({
         done: false,
-        value: { type: 'error', error: 'model overloaded' },
+        value: { type: 'error', error: { message: 'model overloaded' } },
       });
 
       // the server terminates the socket after an error part
@@ -576,11 +598,57 @@ describe('GatewayTranscriptionModel', () => {
       await expect(reader.read()).rejects.toSatisfy(
         err =>
           GatewayError.isInstance(err) &&
+          err.message.includes('model overloaded'),
+      );
+      expect(ws.close).toHaveBeenCalled();
+    });
+
+    it('should stringify non-object error part payloads in the terminal error', async () => {
+      const model = createStreamingTestModel();
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await flush();
+
+      const assertion = expect(partsPromise).rejects.toSatisfy(
+        err =>
+          GatewayError.isInstance(err) &&
+          err.message.includes('model overloaded'),
+      );
+      ws.message({ type: 'error', error: 'model overloaded' });
+      await flush();
+      ws.onclose?.({});
+      await assertion;
+    });
+
+    it('should error the stream with the generic message when the socket closes without finish or error part', async () => {
+      const model = createStreamingTestModel();
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await flush();
+
+      const assertion = expect(partsPromise).rejects.toSatisfy(
+        err =>
+          GatewayError.isInstance(err) &&
           err.message.includes(
             'AI Gateway transcription stream closed before a finish part was received',
           ),
       );
-      expect(ws.close).toHaveBeenCalled();
+      ws.onclose?.({});
+      await assertion;
     });
 
     it('should error the stream with a GatewayError on connection errors', async () => {
@@ -602,6 +670,34 @@ describe('GatewayTranscriptionModel', () => {
             'Connection error on AI Gateway transcription stream',
           ),
       );
+      expect(ws.close).toHaveBeenCalled();
+    });
+
+    it('should cancel the audio stream when the connection fails before open', async () => {
+      const model = createStreamingTestModel();
+
+      const audioCancel = vi.fn();
+      const audio = new ReadableStream<Uint8Array>({
+        cancel: audioCancel,
+      });
+
+      const result = await model.doStream({
+        audio,
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+
+      // handshake failure: onerror fires without the socket ever opening
+      const assertion = expect(partsPromise).rejects.toSatisfy(err =>
+        GatewayError.isInstance(err),
+      );
+      ws.onerror?.({});
+      await flush();
+
+      await assertion;
+      expect(audioCancel).toHaveBeenCalled();
       expect(ws.close).toHaveBeenCalled();
     });
 

@@ -13,6 +13,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getWebSocketConstructor,
+  normalizeHeaders,
   parseTranscriptionStreamPart,
   postJsonToApi,
   readWebSocketMessageText,
@@ -187,12 +188,15 @@ function toGatewayTranscriptionUrl(baseURL: string, modelId: string): string {
 /**
  * Auth-carrying subprotocols from the resolved request headers (bearer token
  * + optional team scope). Native `WebSocket` cannot send headers, so auth
- * rides the `Sec-WebSocket-Protocol` handshake.
+ * rides the `Sec-WebSocket-Protocol` handshake. Header lookups are
+ * case-insensitive because `combineHeaders` does not normalize casing and
+ * callers can pass arbitrary casing via the `headers` option.
  */
 function getProtocolsFromHeaders(
   headers: Record<string, string | undefined>,
 ): string[] {
-  const authorization = headers.Authorization ?? headers.authorization;
+  const normalizedHeaders = normalizeHeaders(headers);
+  const authorization = normalizedHeaders.authorization;
   const token = authorization?.startsWith('Bearer ')
     ? authorization.slice('Bearer '.length)
     : undefined;
@@ -200,7 +204,7 @@ function getProtocolsFromHeaders(
   return token == null
     ? [GATEWAY_TRANSCRIPTION_SUBPROTOCOL]
     : getGatewayTranscriptionProtocols(token, {
-        teamIdOrSlug: headers[VERCEL_AI_GATEWAY_TEAM_HEADER],
+        teamIdOrSlug: normalizedHeaders[VERCEL_AI_GATEWAY_TEAM_HEADER],
       });
 }
 
@@ -232,10 +236,19 @@ function createGatewayTranscriptionStream({
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
+      let hasServerErrorPart = false;
+      let lastServerError: unknown;
 
       cleanup = (closeCode?: number) => {
         abortSignal?.removeEventListener('abort', abort);
-        void audioReader?.cancel().catch(() => {});
+        if (audioReader != null) {
+          void audioReader.cancel().catch(() => {});
+        } else {
+          // Pre-open failure or abort: `sendAudio` never took a reader, so
+          // cancel the caller's audio stream directly — otherwise an upstream
+          // producer piping into it hangs.
+          void audio.cancel().catch(() => {});
+        }
         try {
           ws?.close(closeCode);
         } catch {}
@@ -320,6 +333,14 @@ function createGatewayTranscriptionStream({
               return;
             }
 
+            if (part.type === 'error') {
+              // Remembered so the terminal close error (the server closes
+              // non-1000 after an error part) surfaces the server's message
+              // to promise-based consumers.
+              hasServerErrorPart = true;
+              lastServerError = part.error;
+            }
+
             controller.enqueue(part);
           })
           .catch(finishWithError);
@@ -333,9 +354,13 @@ function createGatewayTranscriptionStream({
 
       socket.onclose = () => {
         finishWithError(
-          new Error(
-            'AI Gateway transcription stream closed before a finish part was received',
-          ),
+          hasServerErrorPart
+            ? new Error(
+                `AI Gateway transcription stream failed: ${getServerErrorMessage(lastServerError)}`,
+              )
+            : new Error(
+                'AI Gateway transcription stream closed before a finish part was received',
+              ),
         );
       };
     },
@@ -401,4 +426,20 @@ async function errorControllerWithGatewayError(
   authMethod: 'api-key' | 'oidc' | undefined,
 ): Promise<void> {
   controller.error(await asGatewayError(error, authMethod));
+}
+
+/**
+ * Extract a human-readable message from an `error` stream part's payload for
+ * the terminal close error.
+ */
+function getServerErrorMessage(error: unknown): string {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return String(error);
 }
