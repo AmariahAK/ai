@@ -2759,15 +2759,21 @@ describe('streamText', () => {
 
       setTimeout(() => abortController.abort(), 0);
 
-      const textOutcome = await Promise.race([
-        Promise.resolve(result.text).then(
-          () => ({ status: 'resolved' as const }),
-          error => ({
-            status: 'rejected' as const,
-            message: error instanceof Error ? error.message : String(error),
-          }),
-        ),
-        delay(50).then(() => ({ status: 'pending' as const })),
+      const resolveOutcome = <T>(promise: PromiseLike<T>) =>
+        Promise.race([
+          Promise.resolve(promise).then(
+            () => ({ status: 'resolved' as const }),
+            error => ({
+              status: 'rejected' as const,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          ),
+          delay(50).then(() => ({ status: 'pending' as const })),
+        ]);
+
+      const [textOutcome, stepsOutcome] = await Promise.all([
+        resolveOutcome(result.text),
+        resolveOutcome(result.steps),
       ]);
 
       try {
@@ -2777,6 +2783,10 @@ describe('streamText', () => {
       }
 
       expect(textOutcome).toMatchObject({
+        status: 'rejected',
+        message: expect.stringMatching(/aborted/i),
+      });
+      expect(stepsOutcome).toMatchObject({
         status: 'rejected',
         message: expect.stringMatching(/aborted/i),
       });
