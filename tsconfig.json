@@ -16,6 +16,9 @@
       "path": "packages/anthropic"
     },
     {
+      "path": "packages/anthropic-aws"
+    },
+    {
       "path": "packages/assemblyai"
     },
     {
