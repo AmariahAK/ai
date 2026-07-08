@@ -1,0 +1,804 @@
+{
+  "requestBody": {
+    "model": "gpt-5.4",
+    "input": [
+      {
+        "role": "developer",
+        "content": "System policy for the reproduction:\n1. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n2. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n3. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n4. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n5. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n6. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n7. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n8. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n9. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n10. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n11. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n12. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n13. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n14. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n15. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n16. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n17. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n18. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n19. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n20. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n21. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n22. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n23. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n24. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n25. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n26. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n27. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n28. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n29. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n30. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n31. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n32. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n33. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n34. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n35. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n36. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n37. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n38. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n39. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n40. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n41. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n42. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n43. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n44. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n45. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n46. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n47. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n48. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n49. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n50. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n51. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n52. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n53. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n54. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY.\n55. You are validating an internal intake workflow. Prefer a short natural-language answer and do not call tools unless absolutely required. The available tools are intentionally verbose because this reproduction targets provider-side schema handling. If the user asks for a direct readiness check, answer with exactly READY."
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Earlier turn: please prepare the intake workflow and remember that the final answer should be concise."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Earlier turn acknowledged. I can answer readiness checks without calling tools."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Second earlier turn: the schemas include email, UUID, and ISO-date constraints."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Second earlier turn acknowledged. I will avoid tools unless they are required."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Readiness check only. Reply with exactly READY."
+          }
+        ]
+      }
+    ],
+    "max_output_tokens": 32,
+    "reasoning": {
+      "effort": "none"
+    },
+    "tools": [
+      {
+        "type": "function",
+        "name": "collectProfile1",
+        "description": "Collect and normalize profile 1. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile2",
+        "description": "Collect and normalize profile 2. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile3",
+        "description": "Collect and normalize profile 3. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile4",
+        "description": "Collect and normalize profile 4. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile5",
+        "description": "Collect and normalize profile 5. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile6",
+        "description": "Collect and normalize profile 6. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile7",
+        "description": "Collect and normalize profile 7. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile8",
+        "description": "Collect and normalize profile 8. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile9",
+        "description": "Collect and normalize profile 9. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile10",
+        "description": "Collect and normalize profile 10. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile11",
+        "description": "Collect and normalize profile 11. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "collectProfile12",
+        "description": "Collect and normalize profile 12. The fields intentionally use zod v4 string-format validators that emit JSON Schema pattern keywords.",
+        "parameters": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "A deliverable contact email address for the profile.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "kidId": {
+              "description": "A stable UUID for the child or dependent profile.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "birthDate": {
+              "description": "An ISO calendar date of birth.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "guardianEmail": {
+              "description": "A backup email address for the guardian.",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "householdId": {
+              "description": "A stable UUID for the household.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            },
+            "note": {
+              "description": "A short plain-English note about the profile.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "email",
+            "kidId",
+            "birthDate",
+            "guardianEmail",
+            "householdId",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ],
+    "tool_choice": "auto",
+    "stream": true
+  },
+  "responseStatus": 200,
+  "responseHeaders": {
+    "content-type": "text/event-stream; charset=utf-8",
+    "date": "Wed, 08 Jul 2026 12:18:44 GMT",
+    "openai-processing-ms": "346",
+    "openai-version": "2020-10-01",
+    "x-request-id": "facb4841-0d99-493e-9e71-9dc6928d13eb"
+  },
+  "observedParts": [
+    {
+      "type": "start"
+    },
+    {
+      "type": "start-step"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.created"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.in_progress"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.output_item.added"
+    },
+    {
+      "type": "text-start"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.content_part.added"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.output_text.delta"
+    },
+    {
+      "type": "text-delta",
+      "text": "READY"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.output_text.done"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.content_part.done"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.output_item.done"
+    },
+    {
+      "type": "text-end"
+    },
+    {
+      "type": "raw",
+      "rawType": "response.completed"
+    },
+    {
+      "type": "finish-step"
+    },
+    {
+      "type": "finish"
+    }
+  ]
+}
