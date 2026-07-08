@@ -5,7 +5,8 @@ description: Learn how to use the Cartesia provider for the AI SDK.
 
 # Cartesia Provider
 
-The [Cartesia](https://cartesia.ai/) provider contains speech generation (Sonic) and transcription (Ink) model support.
+The [Cartesia](https://cartesia.ai/) provider contains Sonic speech generation,
+Ink-Whisper batch transcription, and Ink 2 realtime transcription support.
 
 ## Setup
 
@@ -155,9 +156,49 @@ The following provider options are available:
 | `sonic-2`      |
 | `sonic-turbo`  |
 | `sonic-latest` |
-| `sonic`        |
 
-## Transcription Models
+## Realtime Transcription Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create a model for Cartesia's realtime [Ink 2](https://docs.cartesia.ai/build-with-cartesia/stt/latest)
+API using the `.experimental_realtime()` factory method:
+
+```ts
+import { cartesia } from '@ai-sdk/cartesia';
+
+const model = cartesia.experimental_realtime('ink-2');
+```
+
+Realtime sessions run in the browser and require a short-lived access token
+created on your server with `cartesia.experimental_realtime.getToken()`:
+
+```ts
+const token = await cartesia.experimental_realtime.getToken({
+  model: 'ink-2',
+  sessionConfig: {
+    inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    inputAudioTranscription: { language: 'en' },
+    turnDetection: { type: 'server-vad' },
+  },
+});
+```
+
+Ink 2 produces input transcription events and supports English audio. Turn
+detection is enabled by default. To use manual finalization instead, set
+`turnDetection` to `null` in the session config and call `commitAudio()` when
+the current input is complete.
+
+See [Realtime](/docs/ai-sdk-core/realtime) for the complete browser session
+setup.
+
+### Model Capabilities
+
+| Model   | Streaming Transcription | Turn Detection      |
+| ------- | ----------------------- | ------------------- |
+| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+
+## Batch Transcription Models
 
 You can create models that call the [Cartesia transcription API](https://docs.cartesia.ai/api-reference/stt/transcribe)
 using the `.transcription()` factory method.
