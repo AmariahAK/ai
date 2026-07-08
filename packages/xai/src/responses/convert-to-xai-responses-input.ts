@@ -3,7 +3,8 @@ import {
   type SharedV3Warning,
   type LanguageModelV3Message,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import { xaiFilePartProviderOptions } from '../xai-file-part-options';
 import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
@@ -53,7 +54,19 @@ export async function convertToXaiResponsesInput({
                     ? block.data.toString()
                     : `data:${mediaType};base64,${convertToBase64(block.data)}`;
 
-                contentParts.push({ type: 'input_image', image_url: imageUrl });
+                const filePartOptions = await parseProviderOptions({
+                  provider: 'xai',
+                  providerOptions: block.providerOptions,
+                  schema: xaiFilePartProviderOptions,
+                });
+
+                contentParts.push({
+                  type: 'input_image',
+                  image_url: imageUrl,
+                  ...(filePartOptions?.imageDetail != null && {
+                    detail: filePartOptions.imageDetail,
+                  }),
+                });
               } else if (block.data instanceof URL) {
                 // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
                 // via `{ type: 'input_file', file_url }`. See

@@ -2,8 +2,8 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { describe, it, expect } from 'vitest';
 
 describe('convertToXaiChatMessages', () => {
-  it('should convert simple text messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert simple text messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ]);
 
@@ -11,8 +11,8 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
-  it('should convert system messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert system messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'system', content: 'You are a helpful assistant.' },
     ]);
 
@@ -22,8 +22,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert assistant messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert assistant messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'assistant', content: [{ type: 'text', text: 'Hello there!' }] },
     ]);
 
@@ -33,8 +33,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert messages with image parts', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert messages with image parts', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'user',
         content: [
@@ -63,8 +63,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert image URLs', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert image URLs', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'user',
         content: [
@@ -91,8 +91,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should throw error for unsupported file types', () => {
-    expect(() => {
+  it('should throw error for unsupported file types', async () => {
+    await expect(
       convertToXaiChatMessages([
         {
           role: 'user',
@@ -104,12 +104,12 @@ describe('convertToXaiChatMessages', () => {
             },
           ],
         },
-      ]);
-    }).toThrow('file part media type application/pdf');
+      ]),
+    ).rejects.toThrow('file part media type application/pdf');
   });
 
-  it('should convert tool calls and tool responses', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert tool calls and tool responses', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [
@@ -158,8 +158,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should handle multiple tool calls in one message', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should handle multiple tool calls in one message', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [
@@ -206,8 +206,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should handle mixed content with text and tool calls', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should handle mixed content with text and tool calls', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [

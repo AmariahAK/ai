@@ -3,13 +3,16 @@ import {
   type SharedV3Warning,
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
-import type { XaiChatPrompt } from './xai-chat-prompt';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import type { XaiChatPrompt, XaiUserMessageContent } from './xai-chat-prompt';
+import { xaiFilePartProviderOptions } from './xai-file-part-options';
 
-export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
+export async function convertToXaiChatMessages(
+  prompt: LanguageModelV3Prompt,
+): Promise<{
   messages: XaiChatPrompt;
   warnings: Array<SharedV3Warning>;
-} {
+}> {
   const messages: XaiChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
@@ -26,38 +29,48 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
           break;
         }
 
-        messages.push({
-          role: 'user',
-          content: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text };
-              }
-              case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+        const userContent: Array<XaiUserMessageContent> = [];
 
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.data instanceof URL
-                          ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    },
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
-                }
-              }
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              userContent.push({ type: 'text', text: part.text });
+              break;
             }
-          }),
-        });
+            case 'file': {
+              if (part.mediaType.startsWith('image/')) {
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
+                const filePartOptions = await parseProviderOptions({
+                  provider: 'xai',
+                  providerOptions: part.providerOptions,
+                  schema: xaiFilePartProviderOptions,
+                });
+
+                userContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      part.data instanceof URL
+                        ? part.data.toString()
+                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                    ...(filePartOptions?.imageDetail != null && {
+                      detail: filePartOptions.imageDetail,
+                    }),
+                  },
+                });
+              } else {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `file part media type ${part.mediaType}`,
+                });
+              }
+              break;
+            }
+          }
+        }
+
+        messages.push({ role: 'user', content: userContent });
 
         break;
       }
