@@ -107,6 +107,51 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should preserve JSON-RPC SSE messages split across multiple data lines', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    const msgPromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 2,
+      params: {},
+    });
+
+    await controller.write(
+      'event: message\n' +
+        'data: {"jsonrpc":"2.0",\n' +
+        'data: "id":2,"result":{"ok":true}}\n\n',
+    );
+
+    expect(await msgPromise).toEqual({
+      jsonrpc: '2.0',
+      id: 2,
+      result: { ok: true },
+    });
+  });
+
   it('should initialize MCP client from SSE response without explicit event field', async () => {
     const controller = new TestResponseController();
 
