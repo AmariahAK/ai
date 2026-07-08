@@ -222,7 +222,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
-    const supportsFunctionResponseParts = isGemini3Model;
+    // The Gemini API supports multimodal function response parts for tool
+    // results. Keep Vertex AI on the previously verified Gemini 3+ path.
+    const supportsFunctionResponseParts = isGemini3Model || !isVertexProvider;
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,

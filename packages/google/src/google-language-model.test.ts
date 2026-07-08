@@ -1243,12 +1243,23 @@ describe('doGenerate', () => {
 
     server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
       type: 'json-value',
-      body: JSON.parse(
-        fs.readFileSync(
-          'src/__fixtures__/issue-16072-tool-result-pdf-second-response.json',
-          'utf8',
-        ),
-      ),
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
     };
 
     await provider.languageModel('gemini-2.5-flash-lite').doGenerate({
@@ -1278,7 +1289,28 @@ describe('doGenerate', () => {
       ],
     });
 
-    const requestBody = await server.calls[0].requestBodyJson;
+    const requestBody = (await server.calls[0].requestBodyJson) as {
+      contents: Array<{ parts: Array<Record<string, unknown>> }>;
+    };
+    expect(requestBody.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'test-tool-call-id',
+        name: 'catalogSearch',
+        response: {
+          name: 'catalogSearch',
+          content: 'metadata',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: pdfBase64,
+            },
+          },
+        ],
+      },
+    });
+
     const allParts = requestBody.contents.flatMap(
       (content: { parts: Array<Record<string, unknown>> }) => content.parts,
     );
