@@ -5,6 +5,11 @@ export type {
 } from './cartesia-provider';
 export { CartesiaSpeechModel } from './cartesia-speech-model';
 export { CartesiaTranscriptionModel } from './cartesia-transcription-model';
+export { CartesiaRealtimeModel } from './cartesia-realtime-model';
+export type {
+  CartesiaRealtimeModelId,
+  CartesiaRealtimeModelOptions,
+} from './cartesia-realtime-model-options';
 export type {
   CartesiaSpeechModelId,
   CartesiaSpeechVoiceId,

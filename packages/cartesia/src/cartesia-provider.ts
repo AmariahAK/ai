@@ -1,4 +1,6 @@
 import {
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   NoSuchModelError,
   type TranscriptionModelV4,
   type SpeechModelV4,
@@ -13,6 +15,8 @@ import { CartesiaTranscriptionModel } from './cartesia-transcription-model';
 import type { CartesiaTranscriptionModelId } from './cartesia-transcription-options';
 import { CartesiaSpeechModel } from './cartesia-speech-model';
 import type { CartesiaSpeechModelId } from './cartesia-speech-options';
+import { CartesiaRealtimeModel } from './cartesia-realtime-model';
+import type { CartesiaRealtimeModelId } from './cartesia-realtime-model-options';
 import { VERSION } from './version';
 
 /**
@@ -38,6 +42,11 @@ export interface CartesiaProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: CartesiaSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a realtime Ink speech-to-text model.
+   */
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -104,6 +113,35 @@ export function createCartesia(
       fetch: options.fetch,
     });
 
+  const createRealtimeModel = (modelId: CartesiaRealtimeModelId) =>
+    new CartesiaRealtimeModel(modelId, {
+      provider: `cartesia.realtime`,
+      baseURL: 'https://api.cartesia.ai',
+      version: options.version ?? CARTESIA_API_VERSION,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: CartesiaRealtimeModelId) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const secret = await createRealtimeModel(
+          tokenOptions.model as CartesiaRealtimeModelId,
+        ).doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: CartesiaSpeechModelId) {
     return {
       speech: createSpeechModel(modelId),
@@ -115,6 +153,7 @@ export function createCartesia(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   // Required ProviderV4 methods that are not supported
   provider.languageModel = (modelId: string) => {

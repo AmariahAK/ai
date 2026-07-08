@@ -1,4 +1,5 @@
-// Minimal local app to test Cartesia TTS and STT via @ai-sdk/cartesia.
+// Minimal local app to test Cartesia Sonic 3.5 TTS and Ink-Whisper batch STT
+// via @ai-sdk/cartesia. Ink 2 uses the provider's separate realtime API.
 // Type text, pick a model + voice, hit Generate — the browser plays the audio.
 // Reads CARTESIA_API_KEY from the environment (never sent to the browser).
 import { createServer } from 'node:http';
@@ -61,7 +62,6 @@ const SPEECH_MODELS = [
   'sonic-2',
   'sonic-turbo',
   'sonic-latest',
-  'sonic',
 ];
 
 const DEFAULT_MODEL = SPEECH_MODELS[0];
@@ -76,7 +76,7 @@ const page = `<!doctype html>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Geist:wght@400..700&display=swap" rel="stylesheet" />
-  <title>Cartesia Text-to-Speech</title>
+  <title>Cartesia Sonic + Ink Demo</title>
   <style>
     :root {
       --bg: #fafafa;
@@ -235,7 +235,7 @@ const page = `<!doctype html>
 </head>
 <body>
   <main class="card">
-    <h1 class="title">🎙️ Cartesia Text-to-Speech</h1>
+    <h1 class="title">🎙️ Cartesia Sonic + Ink Demo</h1>
     <p class="subtitle">
       Text-to-speech via <code>@ai-sdk/cartesia</code>
       <code>.speech()</code> through <code>generateSpeech</code>. Pick a Sonic model and voice ID.
@@ -282,7 +282,8 @@ const page = `<!doctype html>
     <hr class="divider" />
     <p class="subtitle" style="margin-bottom:14px">
       🎙️ Push to talk: hold the button, speak, release — transcribed with
-      <code>@ai-sdk/cartesia</code> <code>.transcription()</code> (Ink-Whisper).
+      <code>@ai-sdk/cartesia</code> <code>.transcription()</code> (Ink-Whisper batch).
+      Ink 2 is available separately through <code>.experimental_realtime('ink-2')</code>.
     </p>
     <div class="field">
       <label for="stt-language">Language <span class="muted">(optional — auto-detected if blank)</span></label>
