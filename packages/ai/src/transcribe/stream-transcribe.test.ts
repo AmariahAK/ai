@@ -17,6 +17,7 @@ import {
   vi,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { customProvider } from '../registry/custom-provider';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { streamTranscribe } from './stream-transcribe';
 
@@ -165,6 +166,32 @@ describe('experimental_streamTranscribe', () => {
         inputAudioFormat,
       }),
     ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('should not promise a specific gateway version in the unsupported-model error for string model ids', () => {
+    globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+      transcriptionModels: { 'test-model-id': new MockTranscriptionModelV4() },
+    });
+
+    try {
+      let error: unknown;
+      try {
+        streamTranscribe({ model: 'test-model-id', audio, inputAudioFormat });
+      } catch (thrownError) {
+        error = thrownError;
+      }
+
+      expect(error).toBeInstanceOf(UnsupportedFunctionalityError);
+      const message = (error as Error).message;
+      expect(message).toContain(
+        'String model IDs resolve through the global provider',
+      );
+      // the `ai` package cannot know which @ai-sdk/gateway version ships
+      // streaming transcription, so the message must not name one:
+      expect(message).not.toMatch(/\d+\.\d+\.\d+/);
+    } finally {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    }
   });
 
   it('should reject final promises when no transcript is returned', async () => {
