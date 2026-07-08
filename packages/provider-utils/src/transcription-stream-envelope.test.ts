@@ -91,6 +91,27 @@ describe('parseTranscriptionStreamClientFrame', () => {
     });
   });
 
+  it('should classify a prototype-pollution start frame as invalid', () => {
+    // Raw JSON text: a `__proto__` key in an object literal would set the
+    // prototype rather than serialize as a key, so it must be literal text.
+    const frame =
+      '{"type":"transcription-stream.start","inputAudioFormat":{"type":"audio/pcm"},"__proto__":{"polluted":true}}';
+
+    expect(parseTranscriptionStreamClientFrame(frame)).toEqual({
+      type: 'invalid',
+      message: 'malformed JSON',
+    });
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('should classify a constructor.prototype-pollution start frame as invalid', () => {
+    const frame =
+      '{"type":"transcription-stream.start","inputAudioFormat":{"type":"audio/pcm"},"constructor":{"prototype":{"polluted":true}}}';
+
+    expect(parseTranscriptionStreamClientFrame(frame).type).toBe('invalid');
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
   it.each([['"a string"'], ['[1, 2]'], ['null'], ['42']])(
     'should classify non-object JSON as invalid: %s',
     text => {
@@ -239,6 +260,14 @@ describe('parseTranscriptionStreamPart', () => {
 
   it('should return undefined for malformed JSON', () => {
     expect(parseTranscriptionStreamPart('{not json')).toBeUndefined();
+  });
+
+  it('should return undefined for prototype-pollution payloads', () => {
+    const part =
+      '{"type":"transcript-delta","id":"seg-1","delta":"Hel","__proto__":{"polluted":true}}';
+
+    expect(parseTranscriptionStreamPart(part)).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it.each([['"a string"'], ['[1, 2]'], ['null'], ['42']])(

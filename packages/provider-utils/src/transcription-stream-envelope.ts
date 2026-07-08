@@ -2,6 +2,7 @@ import type {
   Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   JSONObject,
 } from '@ai-sdk/provider';
+import { secureJsonParse } from './secure-json-parse';
 
 /**
  * Experimental transcription-stream WebSocket envelope (v1): the standard
@@ -31,7 +32,9 @@ import type {
  *    scope.
  *
  * The envelope validates frame shape only; server policy (accepted audio
- * formats, required `rate`, size limits) layers on top.
+ * formats, required `rate`, size limits) layers on top. Both parsers use
+ * `secureJsonParse`, so frames carrying `__proto__` / `constructor.prototype`
+ * keys are rejected (prototype-pollution protection) rather than parsed.
  */
 
 /** Type of the first client TEXT frame. */
@@ -92,15 +95,16 @@ const knownStreamPartTypes = new Set<TranscriptionModelV4StreamPart['type']>([
 ]);
 
 /**
- * Server-side: parse a client TEXT frame. Validates envelope shape only.
- * Never throws.
+ * Server-side: parse a client TEXT frame. Validates envelope shape only and
+ * rejects prototype-pollution payloads (parsed with `secureJsonParse`). Never
+ * throws.
  */
 export function parseTranscriptionStreamClientFrame(
   text: string,
 ): Experimental_TranscriptionStreamClientFrame {
   let value: unknown;
   try {
-    value = JSON.parse(text);
+    value = secureJsonParse(text);
   } catch {
     return { type: 'invalid', message: 'malformed JSON' };
   }
@@ -185,7 +189,8 @@ export function serializeTranscriptionStreamPart(
 
 /**
  * Client-side: parse a server TEXT frame into a transcription stream part.
- * Returns `undefined` for malformed JSON and unknown part types. Revives
+ * Returns `undefined` for malformed or unsafe (prototype-polluting) JSON and
+ * unknown part types (parsed with `secureJsonParse`). Revives
  * `response-metadata.timestamp` to a `Date`.
  */
 export function parseTranscriptionStreamPart(
@@ -193,7 +198,7 @@ export function parseTranscriptionStreamPart(
 ): TranscriptionModelV4StreamPart | undefined {
   let value: unknown;
   try {
-    value = JSON.parse(text);
+    value = secureJsonParse(text);
   } catch {
     return undefined;
   }
