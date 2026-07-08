@@ -41,9 +41,7 @@ Install `ai` and `@ai-sdk/vue`. The Vercel AI Gateway provider ships with the `a
   [building custom providers](/providers/community-providers/custom-providers)
   in the [providers](/providers) section.
 </Note>
-<div className="my-4">
-  <InstallPackages packages="ai @ai-sdk/vue zod" />
-</div>
+<InstallPackages packages="ai @ai-sdk/vue zod" />
 
 ### Configure Vercel AI Gateway API key
 
@@ -146,9 +144,7 @@ model: gateway('anthropic/claude-sonnet-4.5');
 
 To use a different provider, install its package and create a provider instance. For example, to use OpenAI directly:
 
-<div className="my-4">
-  <InstallPackages packages="@ai-sdk/openai" />
-</div>
+<InstallPackages packages="@ai-sdk/openai" />
 
 ```ts
 import { openai } from '@ai-sdk/openai';

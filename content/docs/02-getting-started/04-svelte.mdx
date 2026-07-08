@@ -40,9 +40,7 @@ Install `ai` and `@ai-sdk/svelte`, the AI package and AI SDK's Svelte bindings. 
   provider or model by installing its package. Check out available [AI SDK
   providers](/providers/ai-sdk-providers) for more information.
 </Note>
-<div className="my-4">
-  <InstallPackages packages="ai @ai-sdk/svelte zod" dev />
-</div>
+<InstallPackages packages="ai @ai-sdk/svelte zod" dev />
 
 ### Configure your AI Gateway API key
 
@@ -138,9 +136,7 @@ model: gateway('anthropic/claude-sonnet-4.5');
 
 To use a different provider, install its package and create a provider instance. For example, to use OpenAI directly:
 
-<div className="my-4">
-  <InstallPackages packages="@ai-sdk/openai" />
-</div>
+<InstallPackages packages="@ai-sdk/openai" />
 
 ```ts
 import { openai } from '@ai-sdk/openai';
