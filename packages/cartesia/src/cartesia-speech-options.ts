@@ -4,7 +4,6 @@ export type CartesiaSpeechModelId =
   | 'sonic-2'
   | 'sonic-turbo'
   | 'sonic-latest'
-  | 'sonic'
   | (string & {});
 
 export type CartesiaSpeechVoiceId = string;

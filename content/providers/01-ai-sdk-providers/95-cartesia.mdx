@@ -5,7 +5,7 @@ description: Learn how to use the Cartesia provider for the AI SDK.
 
 # Cartesia Provider
 
-The [Cartesia](https://cartesia.ai/) provider contains language model support for the Cartesia speech generation (Sonic) and transcription (Ink) APIs.
+The [Cartesia](https://cartesia.ai/) provider contains speech generation (Sonic) and transcription (Ink) model support.
 
 ## Setup
 
@@ -138,7 +138,7 @@ The following provider options are available:
 
 - **speed** _number_
 
-  Controls the speed of the generated speech.
+  Controls the speed of the generated speech between `0.6` and `1.5`.
   Optional.
 
 - **language** _string_
@@ -148,13 +148,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model         |
-| ------------- |
-| `sonic-3.5`   |
-| `sonic-3`     |
-| `sonic-2`     |
-| `sonic-turbo` |
-| `sonic`       |
+| Model          |
+| -------------- |
+| `sonic-3.5`    |
+| `sonic-3`      |
+| `sonic-2`      |
+| `sonic-turbo`  |
+| `sonic-latest` |
+| `sonic`        |
 
 ## Transcription Models
 
@@ -205,7 +206,7 @@ The following provider options are available:
 
 - **language** _string_
 
-  The language of the audio (ISO 639-1 code). If not specified, the language is auto-detected.
+  The language of the audio (ISO 639-1 code). If not specified, it defaults to English.
   Optional.
 
 - **timestampGranularities** _array of strings_

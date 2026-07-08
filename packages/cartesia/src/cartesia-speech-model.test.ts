@@ -43,7 +43,7 @@ describe('CartesiaSpeechModel', () => {
         voice: 'test-voice-id',
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model_id: 'sonic-3.5',
         transcript: 'Hello, world!',
         voice: {
@@ -52,7 +52,6 @@ describe('CartesiaSpeechModel', () => {
         },
         output_format: {
           container: 'mp3',
-          encoding: 'mp3',
           sample_rate: 44100,
           bit_rate: 128000,
         },
@@ -130,8 +129,33 @@ describe('CartesiaSpeechModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        speed: 1.5,
+        generation_config: {
+          speed: 1.5,
+        },
       });
+    });
+
+    it('should warn and ignore an out-of-range generic speed', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 2,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'generation_config',
+      );
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Cartesia speed must be between 0.6 and 1.5. The speed option was ignored.",
+            "feature": "speed",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should warn about unsupported instructions parameter', async () => {
@@ -176,8 +200,67 @@ describe('CartesiaSpeechModel', () => {
           encoding: 'pcm_s16le',
           sample_rate: 16000,
         },
-        speed: 0.8,
+        generation_config: {
+          speed: 0.8,
+        },
       });
+    });
+
+    it('should ignore encoding for mp3 output', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            encoding: 'pcm_s16le',
+          },
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).output_format,
+      ).toStrictEqual({
+        container: 'mp3',
+        sample_rate: 44100,
+        bit_rate: 128000,
+      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Cartesia MP3 output does not accept an encoding. The encoding option was ignored.",
+            "feature": "providerOptions.cartesia.encoding",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should warn about an unsupported sample rate suffix', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        outputFormat: 'wav_12345',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).output_format,
+      ).toMatchObject({
+        container: 'wav',
+        sample_rate: 44100,
+      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Unsupported Cartesia sample rate in output format \"wav_12345\". Using 44100 Hz instead.",
+            "feature": "outputFormat",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should pass headers', async () => {
@@ -200,7 +283,7 @@ describe('CartesiaSpeechModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-api-key',
-        'cartesia-version': '2025-04-16',
+        'cartesia-version': '2026-03-01',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });

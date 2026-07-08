@@ -13,6 +13,14 @@ The Cartesia provider is available in the `@ai-sdk/cartesia` module. You can ins
 npm i @ai-sdk/cartesia
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `cartesia` from `@ai-sdk/cartesia`:
@@ -25,10 +33,10 @@ import { cartesia } from '@ai-sdk/cartesia';
 
 ```ts
 import { cartesia } from '@ai-sdk/cartesia';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
-  model: cartesia.speech('sonic-2'),
+  model: cartesia.speech('sonic-3.5'),
   text: 'Hello from the Vercel AI SDK!',
   voice: 'a0e99841-438c-4a64-b679-ae501e7d6091',
 });

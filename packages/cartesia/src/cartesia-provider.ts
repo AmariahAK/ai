@@ -19,7 +19,7 @@ import { VERSION } from './version';
  * The Cartesia API version sent with every request via the `Cartesia-Version`
  * header. See https://docs.cartesia.ai/api-reference/api-versioning
  */
-const CARTESIA_API_VERSION = '2025-04-16';
+const CARTESIA_API_VERSION = '2026-03-01';
 
 export interface CartesiaProvider extends ProviderV4 {
   (
