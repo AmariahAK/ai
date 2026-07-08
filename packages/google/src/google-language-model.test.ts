@@ -1236,6 +1236,60 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('issue #16072: should not serialize PDF tool result file data as text for gemini-2.5-flash-lite', async () => {
+    const pdfBase64 = Buffer.from(
+      '%PDF-1.7\n% issue 16072 minimal PDF payload\n%%EOF\n',
+    ).toString('base64');
+
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/issue-16072-tool-result-pdf-second-response.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    await provider.languageModel('gemini-2.5-flash-lite').doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'test-tool-call-id',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    mediaType: 'application/pdf',
+                    filename: 'catalog.pdf',
+                    data: { type: 'data', data: pdfBase64 },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    const allParts = requestBody.contents.flatMap(
+      (content: { parts: Array<Record<string, unknown>> }) => content.parts,
+    );
+    const textPartsWithPdf = allParts.filter(
+      (part: Record<string, unknown>) =>
+        typeof part.text === 'string' && part.text.includes(pdfBase64),
+    );
+
+    expect(textPartsWithPdf).toEqual([]);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('google-text');
 

@@ -1,0 +1,170 @@
+{
+  "requestBodies": [
+    {
+      "generationConfig": {
+        "maxOutputTokens": 16
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Call the catalogSearch tool once."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "functionDeclarations": [
+            {
+              "name": "catalogSearch",
+              "description": "Return catalog PDF metadata and file."
+            }
+          ]
+        }
+      ],
+      "toolConfig": {
+        "functionCallingConfig": {
+          "mode": "ANY",
+          "allowedFunctionNames": [
+            "catalogSearch"
+          ]
+        }
+      }
+    },
+    {
+      "generationConfig": {
+        "maxOutputTokens": 16
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Call the catalogSearch tool once."
+            }
+          ]
+        },
+        {
+          "role": "model",
+          "parts": [
+            {
+              "functionCall": {
+                "id": "lfPRHbjxeN8hgeEB",
+                "name": "catalogSearch",
+                "args": {}
+              }
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "functionResponse": {
+                "id": "lfPRHbjxeN8hgeEB",
+                "name": "catalogSearch",
+                "response": {
+                  "name": "catalogSearch",
+                  "content": "metadata"
+                }
+              }
+            },
+            {
+              "text": "{\"type\":\"file\",\"mediaType\":\"application/pdf\",\"filename\":\"catalog.pdf\",\"data\":{\"type\":\"data\",\"data\":\"JVBERi0xLjcKJSBpc3N1ZSAxNjA3MiBtaW5pbWFsIFBERiBwYXlsb2FkCiUlRU9GCg==\"}}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "functionDeclarations": [
+            {
+              "name": "catalogSearch",
+              "description": "Return catalog PDF metadata and file."
+            }
+          ]
+        }
+      ],
+      "toolConfig": {
+        "functionCallingConfig": {
+          "mode": "ANY",
+          "allowedFunctionNames": [
+            "catalogSearch"
+          ]
+        }
+      }
+    }
+  ],
+  "responseBodies": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "catalogSearch",
+                  "args": {}
+                }
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0,
+          "finishMessage": "Model generated function call(s)."
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 35,
+        "candidatesTokenCount": 9,
+        "totalTokenCount": 44,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 35
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "responseId": "mg1OavSoEO7Z7M8P7OXHmQE"
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "catalogSearch",
+                  "args": {}
+                }
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0,
+          "finishMessage": "Model generated function call(s)."
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 138,
+        "candidatesTokenCount": 9,
+        "totalTokenCount": 147,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 138
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "responseId": "mw1OaoHtBJGL7M8PkYqV8Qw"
+    }
+  ]
+}
