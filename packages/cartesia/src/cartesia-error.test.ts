@@ -4,7 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 describe('cartesiaErrorDataSchema', () => {
   it('should parse a Cartesia error', async () => {
-    const error = `{"error":"Invalid API key."}`;
+    const error = JSON.stringify({
+      error_code: 'authentication_failed',
+      title: 'Authentication failed',
+      message: 'Invalid API key.',
+      request_id: '550e8400-e29b-41d4-a716-446655440000',
+    });
 
     const result = await safeParseJSON({
       text: error,
@@ -14,10 +19,16 @@ describe('cartesiaErrorDataSchema', () => {
     expect(result).toStrictEqual({
       success: true,
       value: {
-        error: 'Invalid API key.',
+        error_code: 'authentication_failed',
+        title: 'Authentication failed',
+        message: 'Invalid API key.',
+        request_id: '550e8400-e29b-41d4-a716-446655440000',
       },
       rawValue: {
-        error: 'Invalid API key.',
+        error_code: 'authentication_failed',
+        title: 'Authentication failed',
+        message: 'Invalid API key.',
+        request_id: '550e8400-e29b-41d4-a716-446655440000',
       },
     });
   });

@@ -5,8 +5,7 @@ export type CartesiaTranscriptionAPITypes = {
   model: string;
 
   /**
-   * The language of the audio (ISO 639-1 code). If not specified, the language
-   * is auto-detected.
+   * The language of the audio (ISO 639-1 code). Defaults to English.
    */
   language?: string;
 

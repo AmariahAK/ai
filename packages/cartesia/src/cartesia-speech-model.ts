@@ -11,7 +11,13 @@ import {
 import type { CartesiaConfig } from './cartesia-config';
 import { cartesiaFailedResponseHandler } from './cartesia-error';
 import { cartesiaSpeechModelOptionsSchema } from './cartesia-speech-model-options';
-import type { CartesiaSpeechAPITypes } from './cartesia-speech-api-types';
+import type {
+  CartesiaSpeechAPITypes,
+  CartesiaSpeechBitRate,
+  CartesiaSpeechEncoding,
+  CartesiaSpeechOutputFormat,
+  CartesiaSpeechSampleRate,
+} from './cartesia-speech-api-types';
 import type {
   CartesiaSpeechModelId,
   CartesiaSpeechVoiceId,
@@ -26,10 +32,113 @@ interface CartesiaSpeechModelConfig extends CartesiaConfig {
 // Default output format used when no outputFormat / provider options are set.
 const DEFAULT_OUTPUT_FORMAT: CartesiaSpeechAPITypes['output_format'] = {
   container: 'mp3',
-  encoding: 'mp3',
   sample_rate: 44100,
   bit_rate: 128000,
 };
+
+const OUTPUT_FORMATS: Record<string, CartesiaSpeechOutputFormat> = {
+  alaw: { container: 'raw', encoding: 'pcm_alaw', sample_rate: 8000 },
+  mp3: DEFAULT_OUTPUT_FORMAT,
+  mulaw: { container: 'raw', encoding: 'pcm_mulaw', sample_rate: 8000 },
+  pcm: { container: 'raw', encoding: 'pcm_f32le', sample_rate: 44100 },
+  raw: { container: 'raw', encoding: 'pcm_f32le', sample_rate: 44100 },
+  wav: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 44100 },
+};
+
+const SAMPLE_RATES = [8000, 16000, 22050, 24000, 44100, 48000] as const;
+
+function isSampleRate(value: number): value is CartesiaSpeechSampleRate {
+  return SAMPLE_RATES.includes(value as CartesiaSpeechSampleRate);
+}
+
+function resolveOutputFormat({
+  outputFormat,
+  providerOptions,
+  warnings,
+}: {
+  outputFormat: string;
+  providerOptions:
+    | {
+        container?: 'raw' | 'wav' | 'mp3' | null;
+        encoding?: CartesiaSpeechEncoding | null;
+        sampleRate?: CartesiaSpeechSampleRate | null;
+        bitRate?: CartesiaSpeechBitRate | null;
+      }
+    | undefined;
+  warnings: SharedV4Warning[];
+}): CartesiaSpeechOutputFormat {
+  const [formatName, sampleRateText, ...extraParts] = outputFormat
+    .toLowerCase()
+    .split('_');
+  const mapped = OUTPUT_FORMATS[formatName];
+  let resolved = mapped ? { ...mapped } : { ...DEFAULT_OUTPUT_FORMAT };
+
+  if (!mapped) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'outputFormat',
+      details: `Unknown output format "${outputFormat}". Falling back to mp3. Use providerOptions.cartesia to configure container, encoding, and sampleRate directly.`,
+    });
+  } else if (sampleRateText != null) {
+    const parsedRate = Number(sampleRateText);
+    if (
+      extraParts.length === 0 &&
+      Number.isInteger(parsedRate) &&
+      isSampleRate(parsedRate)
+    ) {
+      resolved.sample_rate = parsedRate;
+    } else {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'outputFormat',
+        details: `Unsupported Cartesia sample rate in output format "${outputFormat}". Using ${resolved.sample_rate} Hz instead.`,
+      });
+    }
+  }
+
+  const container = providerOptions?.container ?? resolved.container;
+  const sampleRate = providerOptions?.sampleRate ?? resolved.sample_rate;
+
+  if (container === 'mp3') {
+    if (providerOptions?.encoding != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.cartesia.encoding',
+        details:
+          'Cartesia MP3 output does not accept an encoding. The encoding option was ignored.',
+      });
+    }
+
+    return {
+      container,
+      sample_rate: sampleRate,
+      bit_rate:
+        providerOptions?.bitRate ??
+        (resolved.container === 'mp3' ? resolved.bit_rate : 128000),
+    };
+  }
+
+  if (providerOptions?.bitRate != null) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'providerOptions.cartesia.bitRate',
+      details:
+        'Cartesia raw and WAV output do not accept a bit rate. The bitRate option was ignored.',
+    });
+  }
+
+  return {
+    container,
+    encoding:
+      providerOptions?.encoding ??
+      (resolved.container === 'mp3'
+        ? container === 'wav'
+          ? 'pcm_s16le'
+          : 'pcm_f32le'
+        : resolved.encoding),
+    sample_rate: sampleRate,
+  };
+}
 
 export class CartesiaSpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
@@ -79,57 +188,11 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
       throw new Error('Cartesia speech models require a `voice` to be set.');
     }
 
-    // Build the base output format from the SDK's flat `outputFormat` string.
-    const outputFormatObject: CartesiaSpeechAPITypes['output_format'] = {
-      ...DEFAULT_OUTPUT_FORMAT,
-    };
-
-    if (outputFormat) {
-      const formatLower = outputFormat.toLowerCase();
-
-      // Common format mappings. Cartesia expects a structured output_format.
-      // https://docs.cartesia.ai/api-reference/tts/bytes
-      const formatMap: Record<
-        string,
-        { container: string; encoding: string; sampleRate: number }
-      > = {
-        mp3: { container: 'mp3', encoding: 'mp3', sampleRate: 44100 },
-        wav: { container: 'wav', encoding: 'pcm_s16le', sampleRate: 44100 },
-        pcm: { container: 'raw', encoding: 'pcm_f32le', sampleRate: 44100 },
-        raw: { container: 'raw', encoding: 'pcm_f32le', sampleRate: 44100 },
-        mulaw: { container: 'raw', encoding: 'pcm_mulaw', sampleRate: 8000 },
-        alaw: { container: 'raw', encoding: 'pcm_alaw', sampleRate: 8000 },
-      };
-
-      // Try direct match first, then try "<format>_<sampleRate>" pattern.
-      const parts = formatLower.split('_');
-      const mapped = formatMap[parts[0]];
-
-      if (mapped) {
-        outputFormatObject.container = mapped.container;
-        outputFormatObject.encoding = mapped.encoding;
-        outputFormatObject.sample_rate = mapped.sampleRate;
-        if (mapped.container === 'mp3') {
-          outputFormatObject.bit_rate = 128000;
-        } else {
-          delete outputFormatObject.bit_rate;
-        }
-
-        // Optional sample rate suffix, e.g. "wav_24000" or "pcm_16000".
-        if (parts.length >= 2) {
-          const parsedRate = parseInt(parts[1], 10);
-          if (!Number.isNaN(parsedRate)) {
-            outputFormatObject.sample_rate = parsedRate;
-          }
-        }
-      } else {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'outputFormat',
-          details: `Unknown output format "${outputFormat}". Falling back to mp3. Use providerOptions.cartesia to configure container/encoding/sampleRate directly.`,
-        });
-      }
-    }
+    const outputFormatObject = resolveOutputFormat({
+      outputFormat,
+      providerOptions: cartesiaOptions,
+      warnings,
+    });
 
     // Create request body
     const requestBody: CartesiaSpeechAPITypes = {
@@ -147,36 +210,25 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
       requestBody.language = language;
     }
 
-    // Map generic speed
-    if (speed != null) {
-      requestBody.speed = speed;
-    }
-
-    // Add provider-specific options - map camelCase to snake_case
+    // Provider-specific options override the corresponding generic options.
     if (cartesiaOptions) {
-      if (cartesiaOptions.container != null) {
-        requestBody.output_format.container = cartesiaOptions.container;
-      }
-      if (cartesiaOptions.encoding != null) {
-        requestBody.output_format.encoding = cartesiaOptions.encoding;
-      }
-      if (cartesiaOptions.sampleRate != null) {
-        requestBody.output_format.sample_rate = cartesiaOptions.sampleRate;
-      }
-      if (cartesiaOptions.bitRate != null) {
-        requestBody.output_format.bit_rate = cartesiaOptions.bitRate;
-      }
-      if (cartesiaOptions.speed != null) {
-        requestBody.speed = cartesiaOptions.speed;
-      }
       if (cartesiaOptions.language != null) {
         requestBody.language = cartesiaOptions.language;
       }
     }
 
-    // Remove bit_rate for non-mp3 containers where it is not applicable.
-    if (requestBody.output_format.container !== 'mp3') {
-      delete requestBody.output_format.bit_rate;
+    const resolvedSpeed = cartesiaOptions?.speed ?? speed;
+    if (resolvedSpeed != null) {
+      if (resolvedSpeed >= 0.6 && resolvedSpeed <= 1.5) {
+        requestBody.generation_config = { speed: resolvedSpeed };
+      } else {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'speed',
+          details:
+            'Cartesia speed must be between 0.6 and 1.5. The speed option was ignored.',
+        });
+      }
     }
 
     if (instructions) {
