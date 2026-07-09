@@ -28,6 +28,48 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const TOOL_CHOICE_NONE_WITH_TOOL_HISTORY_PROMPT: LanguageModelV4Prompt = [
+  {
+    role: 'user',
+    content: [{ type: 'text', text: 'Search for climate change.' }],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_01ReproToolChoiceNone0000000000',
+        toolName: 'search',
+        input: { query: 'climate change' },
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'toolu_01ReproToolChoiceNone0000000000',
+        toolName: 'search',
+        output: {
+          type: 'text',
+          value:
+            'Climate change results: global temperatures are rising and mitigation requires lowering greenhouse-gas emissions.',
+        },
+      },
+    ],
+  },
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'Now summarize what you found in one concise sentence.',
+      },
+    ],
+  },
+];
+
 const provider = createAnthropic({
   apiKey: 'test-api-key',
   generateId: mockId({ prefix: 'id' }),
@@ -63,6 +105,49 @@ describe('AnthropicLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should send tools and tool_choice none when tool history is present', async () => {
+      prepareJsonFixtureResponse('anthropic-tool-choice-none-live');
+
+      await provider('claude-sonnet-4-6').doGenerate({
+        prompt: TOOL_CHOICE_NONE_WITH_TOOL_HISTORY_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'search',
+            description: 'Search for information.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+              },
+              required: ['query'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'none' },
+        maxOutputTokens: 64,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            name: 'search',
+            description: 'Search for information.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+              },
+              required: ['query'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        tool_choice: { type: 'none' },
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');
