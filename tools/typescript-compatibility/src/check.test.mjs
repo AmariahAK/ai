@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  COMPILER_MINIMUM_RELEASE_AGE_EXCLUDES,
   createAllExportsSource,
   createCompilerOptions,
+  createConsumerWorkspace,
 } from './check.mjs';
 
 test('generates a type query for every exported subpath', () => {
@@ -34,4 +36,27 @@ test('makes skipLibCheck an explicit property of each compatibility tier', () =>
     }).skipLibCheck,
     false,
   );
+});
+
+test('pins compiler fixtures and package overrides in workspace config', () => {
+  const config = createConsumerWorkspace([
+    {
+      packageJson: { name: '@ai-sdk/example' },
+      tarball: '/tmp/ai-sdk-example.tgz',
+    },
+  ]);
+
+  assert.equal(
+    config.overrides['@typescript/typescript6@6.0.2>@typescript/old'],
+    'npm:typescript@6.0.2',
+  );
+  assert.equal(
+    config.overrides['@ai-sdk/example'],
+    'file:/tmp/ai-sdk-example.tgz',
+  );
+  assert.deepEqual(
+    config.minimumReleaseAgeExclude,
+    COMPILER_MINIMUM_RELEASE_AGE_EXCLUDES,
+  );
+  assert.equal(COMPILER_MINIMUM_RELEASE_AGE_EXCLUDES.length, 22);
 });

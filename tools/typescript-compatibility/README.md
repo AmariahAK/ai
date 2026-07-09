@@ -37,6 +37,11 @@ By default the fixture installs and runs these compiler aliases:
 | 6.0.2 | `typescript-6@npm:@typescript/typescript6@6.0.2` |
 | 7.0.2 | `typescript-7@npm:typescript@7.0.2`              |
 
+The isolated consumer pins the compatibility package's `typescript@^6`
+dependency to 6.0.2, so a newer TS6 patch cannot silently change the matrix.
+It also carries exact release-age exceptions for these compiler packages and
+TS7's platform binaries while the repository evaluates the fresh release.
+
 An exact compiler executable can replace the default matrix. This is useful
 while developing a compiler branch or before an alias is present in the
 workspace:

@@ -21,6 +21,46 @@ export const DEFAULT_COMPILERS = [
   },
 ];
 
+export const COMPILER_MINIMUM_RELEASE_AGE_EXCLUDES = [
+  '@typescript/typescript6@6.0.2',
+  '@typescript/typescript-aix-ppc64@7.0.2',
+  '@typescript/typescript-darwin-arm64@7.0.2',
+  '@typescript/typescript-darwin-x64@7.0.2',
+  '@typescript/typescript-freebsd-arm64@7.0.2',
+  '@typescript/typescript-freebsd-x64@7.0.2',
+  '@typescript/typescript-linux-arm@7.0.2',
+  '@typescript/typescript-linux-arm64@7.0.2',
+  '@typescript/typescript-linux-loong64@7.0.2',
+  '@typescript/typescript-linux-mips64el@7.0.2',
+  '@typescript/typescript-linux-ppc64@7.0.2',
+  '@typescript/typescript-linux-riscv64@7.0.2',
+  '@typescript/typescript-linux-s390x@7.0.2',
+  '@typescript/typescript-linux-x64@7.0.2',
+  '@typescript/typescript-netbsd-arm64@7.0.2',
+  '@typescript/typescript-netbsd-x64@7.0.2',
+  '@typescript/typescript-openbsd-arm64@7.0.2',
+  '@typescript/typescript-openbsd-x64@7.0.2',
+  '@typescript/typescript-sunos-x64@7.0.2',
+  '@typescript/typescript-win32-arm64@7.0.2',
+  '@typescript/typescript-win32-x64@7.0.2',
+  'typescript@7.0.2',
+];
+
+export const createConsumerWorkspace = packages => ({
+  minimumReleaseAgeExclude: COMPILER_MINIMUM_RELEASE_AGE_EXCLUDES,
+  onlyBuiltDependencies: ['esbuild'],
+  overrides: {
+    '@typescript/typescript6@6.0.2>@typescript/old':
+      'npm:typescript@6.0.2',
+    ...Object.fromEntries(
+      packages.map(workspacePackage => [
+        workspacePackage.packageJson.name,
+        `file:${workspacePackage.tarball}`,
+      ]),
+    ),
+  },
+});
+
 export const createAllExportsSource = packages => {
   const specifiers = packages.flatMap(workspacePackage =>
     workspacePackage.exportSpecifiers.map(specifier => ({
@@ -86,20 +126,15 @@ const writeConsumer = async ({
           .map(compiler => [compiler.alias, compiler.specifier]),
       ),
     },
-    pnpm: {
-      onlyBuiltDependencies: ['esbuild'],
-      overrides: Object.fromEntries(
-        packages.map(workspacePackage => [
-          workspacePackage.packageJson.name,
-          `file:${workspacePackage.tarball}`,
-        ]),
-      ),
-    },
   };
 
   await writeFile(
     path.join(consumerDir, 'package.json'),
     `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
+  await writeFile(
+    path.join(consumerDir, 'pnpm-workspace.yaml'),
+    `${JSON.stringify(createConsumerWorkspace(packages), null, 2)}\n`,
   );
   await writeFile(
     path.join(consumerDir, 'all-exports.ts'),
