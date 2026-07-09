@@ -1,0 +1,7 @@
+{
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "pdfUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  "ok": true,
+  "text": "The exact words in the document are: \"Dummy PDF file\"."
+}

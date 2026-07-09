@@ -1,0 +1,7 @@
+{
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "pdfUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  "ok": true,
+  "text": "The exact words that appear in the document are:\nDummy PDF file"
+}
