@@ -334,6 +334,7 @@ export function convertToGoogleMessages(
 
       case 'assistant': {
         systemMessagesAllowed = false;
+        let hasSeenSignedToolCall = false;
 
         contents.push({
           role: 'model',
@@ -457,11 +458,22 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const replayWithoutThoughtSignature =
+                    isGemini3Model &&
+                    thoughtSignature == null &&
+                    hasSeenSignedToolCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !replayWithoutThoughtSignature
                       ? injectSkipSignature(part.toolName)
                       : undefined);
+                  const thoughtSignatureProperty = replayWithoutThoughtSignature
+                    ? {}
+                    : { thoughtSignature: effectiveThoughtSignature };
+
+                  if (thoughtSignature != null) {
+                    hasSeenSignedToolCall = true;
+                  }
 
                   if (serverToolCallId && serverToolType) {
                     return {
@@ -473,7 +485,7 @@ export function convertToGoogleMessages(
                             : part.input,
                         id: serverToolCallId,
                       },
-                      thoughtSignature: effectiveThoughtSignature,
+                      ...thoughtSignatureProperty,
                     };
                   }
 
@@ -485,7 +497,7 @@ export function convertToGoogleMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature: effectiveThoughtSignature,
+                    ...thoughtSignatureProperty,
                   };
                 }
 

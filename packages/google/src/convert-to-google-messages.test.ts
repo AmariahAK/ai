@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
@@ -1642,15 +1640,6 @@ describe('server tool combination round-trip', () => {
 });
 
 describe('Gemini 3 missing thoughtSignature mitigation', () => {
-  type Issue16298Fixture = {
-    toolCalls: Array<{
-      toolCallId: string;
-      toolName: string;
-      input: Record<string, unknown>;
-      providerMetadata: Record<string, { thoughtSignature: string }> | null;
-    }>;
-  };
-
   const promptWithToolCallMissingSignature = [
     { role: 'user' as const, content: [{ type: 'text' as const, text: 'hi' }] },
     {
@@ -1803,33 +1792,44 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
   });
 
   it('does NOT warn or inject the sentinel for documented parallel Gemini 3 calls where only the first call has a signature', () => {
-    const fixture = JSON.parse(
-      fs.readFileSync(
-        'src/__fixtures__/issue-16298-gateway-gemini3-parallel-tool-calls.json',
-        'utf8',
-      ),
-    ) as Issue16298Fixture;
     const onWarning = vi.fn();
-    const prompt: LanguageModelV4Prompt = [
-      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'rKrxVWbSgIESGpSQ',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                googleVertex: {
+                  thoughtSignature:
+                    'AY89a1/i06qf1bdNZpjxLQna+76CDAHMUf6SuRr1jnKm+CJz2VLqh8YqBrqr6A1uiTE=',
+                },
+                vertex: {
+                  thoughtSignature:
+                    'AY89a1/i06qf1bdNZpjxLQna+76CDAHMUf6SuRr1jnKm+CJz2VLqh8YqBrqr6A1uiTE=',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'uqHlGJ5OO5nUMHh0',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+          ],
+        },
+      ],
       {
-        role: 'assistant',
-        content: fixture.toolCalls.map(toolCall => ({
-          type: 'tool-call' as const,
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          input: toolCall.input,
-          ...(toolCall.providerMetadata == null
-            ? {}
-            : { providerOptions: toolCall.providerMetadata }),
-        })),
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
       },
-    ];
-    const result = convertToGoogleMessages(prompt, {
-      isGemini3Model: true,
-      providerOptionsNames: ['googleVertex', 'vertex'],
-      onWarning,
-    });
+    );
 
     const assistant = result.contents.find(c => c.role === 'model');
     expect(assistant?.parts[0]).toMatchObject({
