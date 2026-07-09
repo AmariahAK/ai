@@ -51,6 +51,7 @@ import { VERSION } from './version';
 
 type OpenCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type OpenCodeRespawnStrategy = 'replay' | 'rerun';
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
 
 type WriteSkillsResult = {
   readonly skillsDir: string;
@@ -501,7 +502,9 @@ async function forwardBridgeStderr(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     while (true) {
       const { value, done } = await reader.read();
       if (done) return;
@@ -517,7 +520,9 @@ async function forwardBridgeStderr(
 
 async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;

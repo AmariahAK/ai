@@ -5,6 +5,8 @@ import {
 import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
 
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
+
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
  */
@@ -16,7 +18,7 @@ export function parseJsonEventStream<T>({
   schema: FlexibleSchema<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
-    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
     .pipeThrough(new EventSourceParserStream())
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({

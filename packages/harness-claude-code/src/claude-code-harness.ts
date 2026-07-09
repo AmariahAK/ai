@@ -49,6 +49,7 @@ import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
@@ -843,7 +844,9 @@ async function forwardBridgeStderr({
   collectTail?: string[];
 }): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();
@@ -880,7 +883,9 @@ async function forwardBridgeStderr({
 
 async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;

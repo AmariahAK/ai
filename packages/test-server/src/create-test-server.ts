@@ -2,6 +2,8 @@ import { http, HttpResponse, type JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
+type MSWArrayBuffer = Buffer & ArrayBuffer;
+
 export type UrlResponse =
   | {
       type: 'json-value';
@@ -194,7 +196,7 @@ export function createTestServer<
           }
 
           case 'binary': {
-            return HttpResponse.arrayBuffer(response.body, {
+            return HttpResponse.arrayBuffer(response.body as MSWArrayBuffer, {
               status: 200,
               headers: response.headers,
             });

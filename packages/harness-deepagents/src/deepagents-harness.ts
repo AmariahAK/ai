@@ -42,6 +42,7 @@ import {
 import { VERSION } from './version';
 
 type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
 
 // Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
@@ -440,7 +441,9 @@ async function forwardBridgeStderr(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     while (true) {
       const { value, done } = await reader.read();
       if (done) return;

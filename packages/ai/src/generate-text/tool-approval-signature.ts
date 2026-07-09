@@ -3,15 +3,15 @@ import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
 const encoder = new TextEncoder();
 
-function fromBase64url(str: string): Uint8Array {
-  return convertBase64ToUint8Array(str);
+function fromBase64url(str: string): Uint8Array<ArrayBuffer> {
+  return convertBase64ToUint8Array(str) as Uint8Array<ArrayBuffer>;
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
   const keyData = typeof secret === 'string' ? encoder.encode(secret) : secret;
   return crypto.subtle.importKey(
     'raw',
-    keyData,
+    keyData as BufferSource,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify'],
@@ -23,7 +23,7 @@ function buildPayload(
   toolCallId: string,
   toolName: string,
   inputDigest: string,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
   return encoder.encode(
     `${approvalId}\n${toolCallId}\n${toolName}\n${inputDigest}`,
   );

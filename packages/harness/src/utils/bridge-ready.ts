@@ -6,6 +6,8 @@ import {
 import { z } from 'zod/v4';
 import { harnessV1BridgeReadySchema } from '../v1/harness-v1-bridge-protocol';
 
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
+
 const bridgeMetaSchema = z.object({
   type: z.string().optional(),
   port: z.number().optional(),
@@ -79,7 +81,9 @@ export async function waitForBridgeReady({
   createTimeoutError,
   createExitError,
 }: WaitForBridgeReadyOptions): Promise<WaitForBridgeReadyResult> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = proc.stdout
+    .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+    .getReader();
   const decoder = lineDecoder();
   const stdoutTail: string[] = [];
   const deadline = Date.now() + timeoutMs;
