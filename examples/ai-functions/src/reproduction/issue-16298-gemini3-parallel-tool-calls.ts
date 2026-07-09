@@ -1,11 +1,10 @@
-import { createGateway, stepCountIs, streamText, tool } from 'ai';
+import { google } from '@ai-sdk/google';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 async function main() {
-  const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY! });
-
   const result = streamText({
-    model: gateway('google/gemini-3.1-flash-lite'),
+    model: google('gemini-3.1-flash-lite-preview'),
     abortSignal: AbortSignal.timeout(60_000),
     stopWhen: stepCountIs(3),
     tools: {
@@ -83,11 +82,11 @@ async function main() {
   }
 
   const warningText = JSON.stringify(warnings);
-  const reproduced =
+  const fixed =
     toolCallCount >= 2 &&
     signedToolCallCount >= 1 &&
     unsignedToolCallCount >= 1 &&
-    warningText.includes('skip_thought_signature_validator');
+    !warningText.includes('skip_thought_signature_validator');
 
   console.log('\nSUMMARY:');
   console.log(
@@ -99,12 +98,18 @@ async function main() {
         hasSkipThoughtSignatureValidatorWarning: warningText.includes(
           'skip_thought_signature_validator',
         ),
-        reproduced,
+        fixed,
       },
       null,
       2,
     ),
   );
+
+  if (!fixed) {
+    throw new Error(
+      'Expected parallel Gemini 3 tool calls with one signed call and no skip_thought_signature_validator warning.',
+    );
+  }
 }
 
 main().catch(error => {

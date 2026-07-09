@@ -1,23 +1,8 @@
-import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
   SKIP_THOUGHT_SIGNATURE_VALIDATOR,
 } from './convert-to-google-messages';
-
-const issue16298Fixture = JSON.parse(
-  fs.readFileSync(
-    'src/__fixtures__/issue-16298-gemini3-parallel-tool-calls.json',
-    'utf8',
-  ),
-) as {
-  toolCalls: Array<{
-    providerMetadata: {
-      googleVertex?: { thoughtSignature?: string };
-      vertex?: { thoughtSignature?: string };
-    } | null;
-  }>;
-};
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -1702,14 +1687,6 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
   });
 
   it('does NOT inject the sentinel or warn for a documented Gemini 3 parallel function-call batch with only the first call signed', () => {
-    const firstSignature =
-      issue16298Fixture.toolCalls[0].providerMetadata?.googleVertex
-        ?.thoughtSignature ??
-      issue16298Fixture.toolCalls[0].providerMetadata?.vertex?.thoughtSignature;
-
-    expect(firstSignature).toBeTruthy();
-    expect(issue16298Fixture.toolCalls[1].providerMetadata).toBeNull();
-
     const onWarning = vi.fn();
     const result = convertToGoogleMessages(
       [
@@ -1731,8 +1708,8 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
               toolName: 'get_weather',
               input: { city: 'Paris' },
               providerOptions: {
-                googleVertex: { thoughtSignature: firstSignature },
-                vertex: { thoughtSignature: firstSignature },
+                googleVertex: { thoughtSignature: 'sig_parallel_batch' },
+                vertex: { thoughtSignature: 'sig_parallel_batch' },
               },
             },
             {
@@ -1782,7 +1759,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           name: 'get_weather',
           args: { city: 'Paris' },
         },
-        thoughtSignature: firstSignature,
+        thoughtSignature: 'sig_parallel_batch',
       },
       {
         functionCall: {
@@ -1790,6 +1767,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           name: 'get_weather',
           args: { city: 'Tokyo' },
         },
+        thoughtSignature: undefined,
       },
     ]);
     expect(onWarning).not.toHaveBeenCalled();

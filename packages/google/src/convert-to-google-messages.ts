@@ -335,10 +335,16 @@ export function convertToGoogleMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let currentToolCallBatchHasRealThoughtSignature = false;
+
         contents.push({
           role: 'model',
           parts: content
             .map(part => {
+              if (part.type !== 'tool-call') {
+                currentToolCallBatchHasRealThoughtSignature = false;
+              }
+
               const providerOpts = readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
@@ -457,11 +463,21 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 can return a single signature for a parallel
+                    // function-call batch on the first call. Subsequent calls
+                    // in that batch legitimately have no signature to replay.
+                    thoughtSignature == null &&
+                    currentToolCallBatchHasRealThoughtSignature;
+
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
+
+                  currentToolCallBatchHasRealThoughtSignature ||=
+                    thoughtSignature != null;
 
                   if (serverToolCallId && serverToolType) {
                     return {
