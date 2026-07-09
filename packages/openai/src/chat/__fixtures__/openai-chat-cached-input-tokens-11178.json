@@ -1,0 +1,102 @@
+{
+  "issue": 11178,
+  "model": "gpt-4o-mini",
+  "api": "chat.completions",
+  "promptCacheKey": "ai-sdk-issue-11178-1783609407156",
+  "capturedResponses": [
+    {
+      "url": "https://api.openai.com/v1/chat/completions",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-DzkZb8ThxzM15vy3nPxcsDOAddcfZ",
+        "object": "chat.completion",
+        "created": 1783609407,
+        "model": "gpt-4o-mini-2024-07-18",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "OK",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "length"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 2920,
+          "completion_tokens": 1,
+          "total_tokens": 2921,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "fp_956fb8d6db"
+      }
+    },
+    {
+      "url": "https://api.openai.com/v1/chat/completions",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-DzkZdUafUpWCXRPT4K66cOmNKR1At",
+        "object": "chat.completion",
+        "created": 1783609409,
+        "model": "gpt-4o-mini-2024-07-18",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "OK",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "length"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 2920,
+          "completion_tokens": 1,
+          "total_tokens": 2921,
+          "prompt_tokens_details": {
+            "cached_tokens": 2816,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "fp_956fb8d6db"
+      }
+    }
+  ],
+  "observedSdkUsage": {
+    "inputTokens": 2920,
+    "inputTokenDetails": {
+      "noCacheTokens": 104,
+      "cacheReadTokens": 2816
+    },
+    "outputTokens": 1,
+    "outputTokenDetails": {
+      "textTokens": 1,
+      "reasoningTokens": 0
+    },
+    "totalTokens": 2921
+  },
+  "observedRawCachedTokens": 2816
+}

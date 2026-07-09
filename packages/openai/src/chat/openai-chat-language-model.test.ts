@@ -1424,6 +1424,38 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should map cached_tokens from the recorded issue 11178 chat completion fixture', async () => {
+    const fixture = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/openai-chat-cached-input-tokens-11178.json',
+        'utf8',
+      ),
+    );
+    const response = fixture.capturedResponses[1].body;
+    const rawCachedTokens = response.usage.prompt_tokens_details.cached_tokens;
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: response,
+    };
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+    const rawUsage = result.usage.raw as {
+      prompt_tokens_details?: { cached_tokens?: number };
+    };
+
+    expect(rawCachedTokens).toBeGreaterThan(0);
+    expect(result.usage.inputTokens.cacheRead).toBe(rawCachedTokens);
+    expect(result.usage.inputTokens.noCache).toBe(
+      response.usage.prompt_tokens - rawCachedTokens,
+    );
+    expect(rawUsage.prompt_tokens_details?.cached_tokens).toBe(rawCachedTokens);
+  });
+
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
