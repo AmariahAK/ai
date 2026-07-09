@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { readFileSync } from 'node:fs';
 import { createReplicate } from './replicate-provider';
 import { ReplicateImageModel } from './replicate-image-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -11,6 +12,26 @@ const prompt = 'The Loch Ness monster getting a manicure';
 
 const provider = createReplicate({ apiToken: 'test-api-token' });
 const model = provider.image('black-forest-labs/flux-schnell');
+
+type SyncWaitStartingFixture = {
+  initialPrediction: {
+    urls: {
+      get: string;
+    };
+  };
+  succeededPrediction: unknown;
+  imageBase64: string;
+};
+
+const syncWaitStartingFixture = JSON.parse(
+  readFileSync(
+    new URL(
+      './__fixtures__/image-sync-wait-starting-output-null.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+) as SyncWaitStartingFixture;
 
 describe('doGenerate', () => {
   const testDate = new Date(2024, 0, 1);
@@ -187,6 +208,88 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.input.maxWaitTimeInSeconds).toBeUndefined();
     expect(requestBody.input.guidance_scale).toBe(7.5);
+  });
+
+  it('should poll when sync-wait returns an in-progress prediction with null output', async () => {
+    const requests: Array<{ method: string; url: string }> = [];
+
+    const model = createReplicate({
+      apiToken: 'test-api-token',
+      fetch: async (url, init) => {
+        const urlString = url.toString();
+        const method = init?.method ?? 'GET';
+
+        requests.push({ method, url: urlString });
+
+        if (
+          method === 'POST' &&
+          urlString ===
+            'https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions'
+        ) {
+          return new Response(
+            JSON.stringify(syncWaitStartingFixture.initialPrediction),
+            {
+              status: 201,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        }
+
+        if (
+          method === 'GET' &&
+          urlString === syncWaitStartingFixture.initialPrediction.urls.get
+        ) {
+          return new Response(
+            JSON.stringify(syncWaitStartingFixture.succeededPrediction),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        }
+
+        if (
+          method === 'GET' &&
+          urlString === 'https://replicate.delivery/test/out-0.webp'
+        ) {
+          return new Response(
+            new Uint8Array(
+              Buffer.from(syncWaitStartingFixture.imageBase64, 'base64'),
+            ),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'image/webp' },
+            },
+          );
+        }
+
+        throw new Error(`Unexpected request: ${method} ${urlString}`);
+      },
+    }).image('black-forest-labs/flux-dev');
+
+    await expect(
+      model.doGenerate({
+        prompt: 'A watercolor landscape at twilight',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).resolves.toMatchObject({
+      images: [
+        new Uint8Array(
+          Buffer.from(syncWaitStartingFixture.imageBase64, 'base64'),
+        ),
+      ],
+    });
+
+    expect(requests).toContainEqual({
+      method: 'GET',
+      url: syncWaitStartingFixture.initialPrediction.urls.get,
+    });
   });
 
   it('should extract the generated image from array response', async () => {
