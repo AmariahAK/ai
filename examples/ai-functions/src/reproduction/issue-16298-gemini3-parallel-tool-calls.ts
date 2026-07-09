@@ -5,8 +5,8 @@ import { z } from 'zod';
 async function main() {
   const result = streamText({
     model: google('gemini-3.1-flash-lite-preview'),
-    abortSignal: AbortSignal.timeout(60_000),
-    stopWhen: stepCountIs(3),
+    abortSignal: AbortSignal.timeout(120_000),
+    stopWhen: stepCountIs(5),
     tools: {
       get_weather: tool({
         description: 'Get the current weather for a given city.',
@@ -26,19 +26,49 @@ async function main() {
     // drain
   }
 
+  const finalText = await result.text;
   const warnings = await result.warnings;
   const steps = await result.steps;
 
   console.log('WARNINGS:');
   console.log(JSON.stringify(warnings, null, 2));
 
+  console.log('\nFINAL TEXT:');
+  console.log(finalText);
+
   console.log('\nTOOL-CALL PARTS:');
   let toolCallCount = 0;
   let signedToolCallCount = 0;
   let unsignedToolCallCount = 0;
+  let toolResultCount = 0;
+  let multiStepRoundtrip = false;
 
   for (const [stepIndex, step] of steps.entries()) {
+    const stepToolCallCount = step.content.filter(
+      part => part.type === 'tool-call',
+    ).length;
+    const stepToolResultCount = step.content.filter(
+      part => part.type === 'tool-result',
+    ).length;
+
+    if (stepToolCallCount >= 3 && stepToolResultCount >= 3) {
+      multiStepRoundtrip =
+        multiStepRoundtrip ||
+        steps
+          .slice(stepIndex + 1)
+          .some(laterStep =>
+            laterStep.content.some(
+              part => part.type === 'text' && part.text.trim().length > 0,
+            ),
+          );
+    }
+
     for (const part of step.content) {
+      if (part.type === 'tool-result') {
+        toolResultCount++;
+        continue;
+      }
+
       if (part.type !== 'tool-call') {
         continue;
       }
@@ -84,17 +114,23 @@ async function main() {
   const warningText = JSON.stringify(warnings);
   const fixed =
     toolCallCount >= 3 &&
+    toolResultCount >= 3 &&
     signedToolCallCount >= 1 &&
     unsignedToolCallCount >= 2 &&
+    multiStepRoundtrip &&
     !warningText.includes('skip_thought_signature_validator');
 
   console.log('\nSUMMARY:');
   console.log(
     JSON.stringify(
       {
+        stepCount: steps.length,
         toolCallCount,
+        toolResultCount,
         signedToolCallCount,
         unsignedToolCallCount,
+        finalTextPresent: finalText.trim().length > 0,
+        multiStepRoundtrip,
         hasSkipThoughtSignatureValidatorWarning: warningText.includes(
           'skip_thought_signature_validator',
         ),
@@ -107,7 +143,7 @@ async function main() {
 
   if (!fixed) {
     throw new Error(
-      'Expected at least three parallel Gemini 3 tool calls with one signed call, at least two unsigned calls, and no skip_thought_signature_validator warning.',
+      'Expected a Gemini 3 multi-step roundtrip with at least three parallel tool calls, matching tool results, one signed call, at least two unsigned calls, final text, and no skip_thought_signature_validator warning.',
     );
   }
 }
