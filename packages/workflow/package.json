@@ -3,9 +3,9 @@
   "version": "1.0.18",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "source": "./src/index.ts",
   "files": [
     "dist/**/*",
@@ -32,9 +32,9 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     }
   },
   "dependencies": {

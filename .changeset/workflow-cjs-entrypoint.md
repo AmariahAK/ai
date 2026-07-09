@@ -2,4 +2,4 @@
 '@ai-sdk/workflow': patch
 ---
 
-Emit the CommonJS build and declaration files declared by package entrypoints.
+Remove CommonJS entrypoints from the workflow package manifest so it only declares published ESM files.
