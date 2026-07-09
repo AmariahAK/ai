@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
@@ -1640,6 +1642,15 @@ describe('server tool combination round-trip', () => {
 });
 
 describe('Gemini 3 missing thoughtSignature mitigation', () => {
+  type Issue16298Fixture = {
+    toolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+      input: Record<string, unknown>;
+      providerMetadata: Record<string, { thoughtSignature: string }> | null;
+    }>;
+  };
+
   const promptWithToolCallMissingSignature = [
     { role: 'user' as const, content: [{ type: 'text' as const, text: 'hi' }] },
     {
@@ -1788,6 +1799,56 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
     expect(assistant?.parts[0]).toMatchObject({
       thoughtSignature: 'google_vertex_sig',
     });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT warn or inject the sentinel for documented parallel Gemini 3 calls where only the first call has a signature', () => {
+    const fixture = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/issue-16298-gateway-gemini3-parallel-tool-calls.json',
+        'utf8',
+      ),
+    ) as Issue16298Fixture;
+    const onWarning = vi.fn();
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      {
+        role: 'assistant',
+        content: fixture.toolCalls.map(toolCall => ({
+          type: 'tool-call' as const,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          ...(toolCall.providerMetadata == null
+            ? {}
+            : { providerOptions: toolCall.providerMetadata }),
+        })),
+      },
+    ];
+    const result = convertToGoogleMessages(prompt, {
+      isGemini3Model: true,
+      providerOptionsNames: ['googleVertex', 'vertex'],
+      onWarning,
+    });
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: {
+        id: 'rKrxVWbSgIESGpSQ',
+        name: 'get_weather',
+        args: { city: 'Paris' },
+      },
+      thoughtSignature:
+        'AY89a1/i06qf1bdNZpjxLQna+76CDAHMUf6SuRr1jnKm+CJz2VLqh8YqBrqr6A1uiTE=',
+    });
+    expect(assistant?.parts[1]).toMatchObject({
+      functionCall: {
+        id: 'uqHlGJ5OO5nUMHh0',
+        name: 'get_weather',
+        args: { city: 'Tokyo' },
+      },
+    });
+    expect(assistant?.parts[1]).not.toHaveProperty('thoughtSignature');
     expect(onWarning).not.toHaveBeenCalled();
   });
 
