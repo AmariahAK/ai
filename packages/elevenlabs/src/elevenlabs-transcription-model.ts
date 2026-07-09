@@ -68,7 +68,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     const blob =
       audio instanceof Uint8Array
         ? new Blob([audio as BlobPart])
-        : new Blob([convertBase64ToUint8Array(audio) as BlobPart]);
+        : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);
     const fileExtension = mediaTypeToExtension(mediaType);

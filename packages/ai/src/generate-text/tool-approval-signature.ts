@@ -4,7 +4,7 @@ import { hashCanonical, toBase64url } from '../util/canonical-hash';
 const encoder = new TextEncoder();
 
 function fromBase64url(str: string): Uint8Array<ArrayBuffer> {
-  return convertBase64ToUint8Array(str) as Uint8Array<ArrayBuffer>;
+  return convertBase64ToUint8Array(str);
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
