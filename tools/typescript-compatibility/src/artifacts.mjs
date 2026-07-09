@@ -37,6 +37,13 @@ const PUBLIC_METADATA_FIELDS = [
   'engines',
 ];
 
+const ORDER_INSENSITIVE_METADATA_FIELDS = new Set([
+  'dependencies',
+  'peerDependencies',
+  'peerDependenciesMeta',
+  'optionalDependencies',
+]);
+
 const isComparedArtifact = file =>
   /(?:\.d\.(?:ts|mts|cts)|\.(?:js|mjs|cjs)|\.map)$/.test(file);
 
@@ -130,6 +137,32 @@ export const writeArtifactSnapshot = async (file, snapshot) => {
 
 const jsonEqual = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
+const sortObjectKeys = value => {
+  if (Array.isArray(value)) {
+    return value.map(sortObjectKeys);
+  }
+
+  if (value == null || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map(key => [key, sortObjectKeys(value[key])]),
+  );
+};
+
+const normalizePublicMetadata = metadata =>
+  Object.fromEntries(
+    Object.entries(metadata).map(([field, value]) => [
+      field,
+      ORDER_INSENSITIVE_METADATA_FIELDS.has(field)
+        ? sortObjectKeys(value)
+        : value,
+    ]),
+  );
+
 export const compareArtifactSnapshots = (baseline, candidate) => {
   if (baseline.schemaVersion !== candidate.schemaVersion) {
     return [
@@ -156,7 +189,12 @@ export const compareArtifactSnapshots = (baseline, candidate) => {
       continue;
     }
 
-    if (!jsonEqual(before.publicMetadata, after.publicMetadata)) {
+    if (
+      !jsonEqual(
+        normalizePublicMetadata(before.publicMetadata),
+        normalizePublicMetadata(after.publicMetadata),
+      )
+    ) {
       differences.push(`${name}: public package metadata changed`);
     }
     if (!jsonEqual(before.exportSpecifiers, after.exportSpecifiers)) {

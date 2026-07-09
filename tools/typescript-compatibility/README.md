@@ -12,9 +12,10 @@ pnpm --filter typescript-compatibility check
 ```
 
 `check` discovers every non-private package under `packages/`, packs each one,
-and installs all tarballs into an isolated temporary consumer. Before packing,
-it runs the repository's package build so an emitting `tsc --build` cannot
-leave unpackable or unbundled files in `dist`. Each compiler and
+and installs all tarballs into an isolated temporary consumer. Before the
+default package build, it removes every discovered package's top-level `dist`
+directory and forces the build so stale compiler output or a Turbo cache entry
+cannot enter a tarball. Each compiler and
 module-resolution mode runs two gates:
 
 1. `all-exports` resolves every explicit package export with
@@ -49,8 +50,8 @@ The harness uses `corepack pnpm` so packing follows the repository's pinned
 pnpm version. Use `PNPM_EXECUTABLE` to select a different executable. Pass
 `--keep` to retain the temporary directory printed by the command for
 debugging. `--skip-build` is available only when the caller has just completed
-a clean `pnpm build:packages`; CI and baseline comparisons should use the
-default rebuild.
+a clean `pnpm build:packages`; it skips both the cleanup and build. CI and
+baseline comparisons should use the default rebuild.
 
 ## Artifact snapshots
 
