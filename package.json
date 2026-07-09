@@ -11,6 +11,8 @@
     "prepare": "husky",
     "update-references": "update-ts-references && node tools/split-ts-references.mjs",
     "type-check": "tsc --build",
+    "type-check:ci:ts6": "node tools/type-check-lifecycle.mjs tsc6 6.0.2 && node tools/type-check-stable.mjs tsconfig.with-examples.json",
+    "type-check:ci:ts7": "node tools/type-check-lifecycle.mjs tsc 7.0.2",
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "type-check:full:stable": "pnpm type-check:full && node tools/type-check-stable.mjs tsconfig.with-examples.json",
     "type-check:stable": "pnpm type-check && node tools/type-check-stable.mjs tsconfig.json",
