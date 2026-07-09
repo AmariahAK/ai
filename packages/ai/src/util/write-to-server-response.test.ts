@@ -32,6 +32,46 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
+  it('should disable Nagle and flush headers before writing stream chunks', async () => {
+    const events: string[] = [];
+    const mockResponse = createMockServerResponse();
+    const setNoDelay = vi.fn(() => {
+      events.push('setNoDelay');
+    });
+    const flushHeaders = vi.fn(() => {
+      events.push('flushHeaders');
+    });
+    const originalWrite = mockResponse.write.bind(mockResponse);
+
+    Object.assign(mockResponse, {
+      socket: { setNoDelay },
+      flushHeaders,
+    });
+    mockResponse.write = (chunk: any) => {
+      events.push('write');
+      return originalWrite(chunk);
+    };
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk'));
+        controller.close();
+      },
+    });
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(setNoDelay).toHaveBeenCalledWith(true);
+    expect(flushHeaders).toHaveBeenCalledTimes(1);
+    expect(events).toEqual(['setNoDelay', 'flushHeaders', 'write']);
+  });
+
   describe('backpressure handling', () => {
     beforeEach(() => {
       vi.useFakeTimers();

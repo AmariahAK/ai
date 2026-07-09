@@ -33,8 +33,9 @@ describe('pipeUIMessageStreamToResponse', () => {
     // Verify headers
     expect(mockResponse.headers).toMatchInlineSnapshot(`
       {
-        "cache-control": "no-cache",
+        "cache-control": "no-cache, no-transform",
         "connection": "keep-alive",
+        "content-encoding": "none",
         "content-type": "text/event-stream",
         "custom-header": "test",
         "x-accel-buffering": "no",

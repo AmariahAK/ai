@@ -2931,8 +2931,9 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "cache-control": "no-cache",
+          "cache-control": "no-cache, no-transform",
           "connection": "keep-alive",
+          "content-encoding": "none",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
           "x-vercel-ai-ui-message-stream": "v1",
@@ -3001,8 +3002,9 @@ describe('streamText', () => {
 
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "cache-control": "no-cache",
+          "cache-control": "no-cache, no-transform",
           "connection": "keep-alive",
+          "content-encoding": "none",
           "content-type": "text/event-stream",
           "custom-header": "custom-value",
           "x-accel-buffering": "no",
@@ -3163,8 +3165,9 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "cache-control": "no-cache",
+          "cache-control": "no-cache, no-transform",
           "connection": "keep-alive",
+          "content-encoding": "none",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
           "x-vercel-ai-ui-message-stream": "v1",
@@ -3280,8 +3283,9 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "cache-control": "no-cache",
+          "cache-control": "no-cache, no-transform",
           "connection": "keep-alive",
+          "content-encoding": "none",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
           "x-vercel-ai-ui-message-stream": "v1",
@@ -3338,8 +3342,9 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "cache-control": "no-cache",
+          "cache-control": "no-cache, no-transform",
           "connection": "keep-alive",
+          "content-encoding": "none",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
           "x-vercel-ai-ui-message-stream": "v1",

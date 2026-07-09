@@ -44,7 +44,11 @@ export function pipeUIMessageStreamToResponse({
     status,
     statusText,
     headers: Object.fromEntries(
-      prepareHeaders(headers, UI_MESSAGE_STREAM_HEADERS).entries(),
+      prepareHeaders(headers, {
+        ...UI_MESSAGE_STREAM_HEADERS,
+        'cache-control': 'no-cache, no-transform',
+        'content-encoding': 'none',
+      }).entries(),
     ),
     stream: sseStream.pipeThrough(new TextEncoderStream()),
   });
