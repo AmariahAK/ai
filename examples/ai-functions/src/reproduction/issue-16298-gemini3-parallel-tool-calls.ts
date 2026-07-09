@@ -13,13 +13,13 @@ async function main() {
         inputSchema: z.object({ city: z.string() }),
         execute: async ({ city }) => ({
           city,
-          tempC: city === 'Paris' ? 21 : 24,
+          tempC: city === 'Paris' ? 21 : city === 'Tokyo' ? 24 : 19,
           conditions: 'sunny',
         }),
       }),
     },
     prompt:
-      'Use the get_weather tool to check the weather in Paris and Tokyo in parallel in the same assistant step, then summarize.',
+      'Use the get_weather tool to check the weather in Paris, Tokyo, and New York. Make exactly three get_weather tool calls in parallel in the same assistant step before you summarize.',
   });
 
   for await (const _ of result.textStream) {
@@ -83,9 +83,9 @@ async function main() {
 
   const warningText = JSON.stringify(warnings);
   const fixed =
-    toolCallCount >= 2 &&
+    toolCallCount >= 3 &&
     signedToolCallCount >= 1 &&
-    unsignedToolCallCount >= 1 &&
+    unsignedToolCallCount >= 2 &&
     !warningText.includes('skip_thought_signature_validator');
 
   console.log('\nSUMMARY:');
@@ -107,7 +107,7 @@ async function main() {
 
   if (!fixed) {
     throw new Error(
-      'Expected parallel Gemini 3 tool calls with one signed call and no skip_thought_signature_validator warning.',
+      'Expected at least three parallel Gemini 3 tool calls with one signed call, at least two unsigned calls, and no skip_thought_signature_validator warning.',
     );
   }
 }

@@ -1695,7 +1695,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           content: [
             {
               type: 'text',
-              text: 'Check the weather in Paris and Tokyo.',
+              text: 'Check the weather in Paris, Tokyo, and New York.',
             },
           ],
         },
@@ -1718,6 +1718,12 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
               toolName: 'get_weather',
               input: { city: 'Tokyo' },
             },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_new_york',
+              toolName: 'get_weather',
+              input: { city: 'New York' },
+            },
           ],
         },
         {
@@ -1739,6 +1745,15 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
               output: {
                 type: 'json',
                 value: { city: 'Tokyo', tempC: 24, conditions: 'sunny' },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'tc_new_york',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { city: 'New York', tempC: 19, conditions: 'sunny' },
               },
             },
           ],
@@ -1766,6 +1781,14 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           id: 'tc_tokyo',
           name: 'get_weather',
           args: { city: 'Tokyo' },
+        },
+        thoughtSignature: undefined,
+      },
+      {
+        functionCall: {
+          id: 'tc_new_york',
+          name: 'get_weather',
+          args: { city: 'New York' },
         },
         thoughtSignature: undefined,
       },
