@@ -38,11 +38,11 @@ export async function downloadBlob(
       });
     }
 
-    const data = await readResponseWithSizeLimit({
+    const data = (await readResponseWithSizeLimit({
       response,
       url,
       maxBytes: options?.maxBytes ?? DEFAULT_MAX_DOWNLOAD_SIZE,
-    });
+    })) as Uint8Array<ArrayBuffer>;
 
     const contentType = response.headers.get('content-type') ?? undefined;
     return new Blob([data], contentType ? { type: contentType } : undefined);

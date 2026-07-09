@@ -231,7 +231,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
               : '';
       formData.append(
         'input',
-        new Blob([imageBytes], { type: imageMediaType }),
+        new Blob([imageBytes as BlobPart], { type: imageMediaType }),
         'input' + fileExtension,
       );
     }

@@ -45,7 +45,7 @@ export function asAsyncIterableStream<T>(
    */
   (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = function (
     this: ReadableStream<T>,
-  ): AsyncIterator<T> {
+  ): ReadableStreamAsyncIterator<T> {
     const reader = this.getReader();
 
     let finished = false;
@@ -108,7 +108,7 @@ export function asAsyncIterableStream<T>(
         await cleanup(true);
         throw err;
       },
-    };
+    } as ReadableStreamAsyncIterator<T>;
   };
 
   return stream as AsyncIterableStream<T>;

@@ -1,3 +1,5 @@
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
+
 export async function processTextStream({
   stream,
   onTextPart,
@@ -5,7 +7,9 @@ export async function processTextStream({
   stream: ReadableStream<Uint8Array>;
   onTextPart: (chunk: string) => Promise<void> | void;
 }): Promise<void> {
-  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = stream
+    .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+    .getReader();
   while (true) {
     const { done, value } = await reader.read();
     if (done) {

@@ -4,6 +4,8 @@ const DEFAULT_TAIL_LIMIT = 20;
 
 type BridgeProcessStreamName = 'stdout' | 'stderr';
 
+type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
+
 type SerializedError = {
   name?: string;
   message: string;
@@ -145,7 +147,9 @@ export async function forwardBridgeProcessStream({
   tailLimit?: number;
 }): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();
@@ -163,7 +167,9 @@ export async function drainBridgeProcessStream(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
+      .getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;
