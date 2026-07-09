@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 export const readJson = async file => JSON.parse(await readFile(file, 'utf8'));
@@ -73,5 +73,16 @@ export const discoverPublishedPackages = async workspaceRoot => {
 
   return packages.sort((left, right) =>
     left.packageJson.name.localeCompare(right.packageJson.name),
+  );
+};
+
+export const removePackageDistDirectories = async packages => {
+  await Promise.all(
+    packages.map(workspacePackage =>
+      rm(path.join(workspacePackage.directory, 'dist'), {
+        force: true,
+        recursive: true,
+      }),
+    ),
   );
 };

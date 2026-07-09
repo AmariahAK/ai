@@ -19,7 +19,10 @@ import {
 } from './artifacts.mjs';
 import { checkPackedPackages, DEFAULT_COMPILERS } from './check.mjs';
 import { packPackages } from './pack.mjs';
-import { discoverPublishedPackages } from './packages.mjs';
+import {
+  discoverPublishedPackages,
+  removePackageDistDirectories,
+} from './packages.mjs';
 import { runPnpm } from './process.mjs';
 
 const toolRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -139,7 +142,8 @@ const main = async () => {
 
     if (!options.skipBuild) {
       process.stdout.write('Building clean package artifacts\n');
-      await runPnpm(['build:packages'], { cwd: workspaceRoot });
+      await removePackageDistDirectories(packages);
+      await runPnpm(['build:packages', '--force'], { cwd: workspaceRoot });
     }
 
     const tarballs = await packPackages({
