@@ -825,9 +825,60 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'base64pdfdata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
       },
     ]);
+  });
+
+  it('issue #16072: should not serialize PDF file tool results as text on the non-Gemini-3 path', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file-data',
+                    data: 'JVBERi0xLjQK',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    const textParts = result.contents.flatMap(content =>
+      content.parts
+        .filter(part => 'text' in part)
+        .map(part => (part as { text: string }).text),
+    );
+
+    expect(textParts).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('JVBERi0xLjQK')]),
+    );
+    expect(result.contents[0].parts).toContainEqual({
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: 'JVBERi0xLjQK',
+      },
+    });
   });
 
   it('should keep URL tool result parts on the legacy path', async () => {

@@ -188,6 +188,9 @@ function appendLegacyToolResultParts(
         });
         break;
       case 'image-data':
+      case 'file-data': {
+        const topLevelMediaType = String(contentPart.mediaType).split('/')[0];
+
         parts.push(
           {
             inlineData: {
@@ -196,10 +199,14 @@ function appendLegacyToolResultParts(
             },
           },
           {
-            text: 'Tool executed successfully and returned this image as a response',
+            text:
+              `Tool executed successfully and returned this ` +
+              `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
+              `as a response`,
           },
         );
         break;
+      }
       default:
         parts.push({ text: JSON.stringify(contentPart) });
         break;
