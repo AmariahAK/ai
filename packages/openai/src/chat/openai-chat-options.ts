@@ -57,6 +57,10 @@ export type OpenAIChatModelId =
   | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
+  | 'gpt-5.6'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-sol'
+  | 'gpt-5.6-terra'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazyValidator(() =>
