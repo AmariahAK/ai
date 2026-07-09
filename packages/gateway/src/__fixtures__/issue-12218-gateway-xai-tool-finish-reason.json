@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "tool-call",
+      "toolCallId": "call_23921261",
+      "toolName": "getWeather",
+      "input": "{\"city\":\"Seoul\"}"
+    }
+  ],
+  "finishReason": {
+    "unified": "tool-calls",
+    "raw": "tool_calls"
+  },
+  "usage": {
+    "inputTokens": {
+      "total": 875,
+      "noCache": 224,
+      "cacheRead": 651
+    },
+    "outputTokens": {
+      "total": 124,
+      "text": 26,
+      "reasoning": 98
+    },
+    "raw": {
+      "prompt_tokens": 875,
+      "completion_tokens": 26,
+      "total_tokens": 999,
+      "prompt_tokens_details": {
+        "cached_tokens": 651
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 98,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "cost_in_usd_ticks": 0,
+      "extra_properties": {
+        "google": {
+          "traffic_type": "ON_DEMAND"
+        }
+      },
+      "num_sources_used": 0
+    }
+  },
+  "providerMetadata": {
+    "googleVertex": {
+      "acceptedPredictionTokens": 0,
+      "rejectedPredictionTokens": 0
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "xai/grok-4.1-fast-reasoning",
+        "resolvedProvider": "vertex",
+        "fallbacksAvailable": [],
+        "planningReasoning": "System credentials planned for: vertex. Total execution order: vertex(system)",
+        "canonicalSlug": "xai/grok-4.1-fast-reasoning",
+        "finalProvider": "vertex",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "xai/grok-4.1-fast-reasoning",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "vertex",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1783597051541,
+                "endTime": 1783597052986,
+                "statusCode": 200
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "generationId": "gen_01KX3APBF96TQBDCNT0G0M4M84"
+    }
+  },
+  "warnings": []
+}
