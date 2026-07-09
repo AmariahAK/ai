@@ -2,6 +2,7 @@ import {
   APICallError,
   NoSuchProviderReferenceError,
   LanguageModelV4,
+  type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
@@ -63,6 +64,93 @@ describe('AnthropicLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('issue #12378: does not reproduce empty content with live Claude Sonnet 4.6 fixture', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/anthropic-tool-choice-none-live-response.json',
+          'utf8',
+        ),
+      );
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: fixture.response.body,
+      };
+
+      const searchTool: LanguageModelV4FunctionTool = {
+        type: 'function',
+        name: 'search',
+        description: 'Search for information.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string' },
+          },
+          required: ['query'],
+          additionalProperties: false,
+        },
+      };
+
+      const result = await provider('claude-sonnet-4-6').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Search for climate change information.' },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'search',
+                input: { query: 'climate change' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tc1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Climate change is driven by greenhouse gases and affects temperatures, weather patterns, and sea levels.',
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Now summarize what you found in one short sentence.',
+              },
+            ],
+          },
+        ],
+        tools: [searchTool],
+        toolChoice: { type: 'none' },
+        maxOutputTokens: 128,
+      });
+
+      const text = result.content
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('');
+
+      expect(text).not.toBe('');
+      expect(result.finishReason).toStrictEqual({
+        unified: 'stop',
+        raw: 'end_turn',
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');

@@ -1,0 +1,121 @@
+{
+  "request": {
+    "url": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": {
+      "anthropic-beta": "structured-outputs-2025-11-13",
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+      "user-agent": "ai-sdk/anthropic/0.0.0-test ai-sdk/provider-utils/0.0.0-test runtime/node.js/22",
+      "x-api-key": "<redacted>"
+    },
+    "body": {
+      "model": "claude-sonnet-4-6",
+      "max_tokens": 128,
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Search for climate change information."
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "tc1",
+              "name": "search",
+              "input": {
+                "query": "climate change"
+              }
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "tc1",
+              "content": "Climate change is driven by greenhouse gases and affects temperatures, weather patterns, and sea levels."
+            },
+            {
+              "type": "text",
+              "text": "Now summarize what you found in one short sentence."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "model": "claude-sonnet-4-6",
+      "id": "msg_011Ccremhn7ZBmUuuRYY9FXx",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Climate change, driven by greenhouse gases, impacts global temperatures, weather patterns, and sea levels."
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 111,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 22,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    }
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Climate change, driven by greenhouse gases, impacts global temperatures, weather patterns, and sea levels."
+      }
+    ],
+    "finishReason": {
+      "unified": "stop",
+      "raw": "end_turn"
+    },
+    "usage": {
+      "inputTokens": {
+        "total": 111,
+        "noCache": 111,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "outputTokens": {
+        "total": 22
+      },
+      "raw": {
+        "input_tokens": 111,
+        "output_tokens": 22,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    "warnings": []
+  }
+}
