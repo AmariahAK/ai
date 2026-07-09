@@ -1,8 +1,23 @@
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
   SKIP_THOUGHT_SIGNATURE_VALIDATOR,
 } from './convert-to-google-messages';
+
+const issue16298Fixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/issue-16298-gemini3-parallel-tool-calls.json',
+    'utf8',
+  ),
+) as {
+  toolCalls: Array<{
+    providerMetadata: {
+      googleVertex?: { thoughtSignature?: string };
+      vertex?: { thoughtSignature?: string };
+    } | null;
+  }>;
+};
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -1684,6 +1699,100 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
       message: expect.stringContaining('skip_thought_signature_validator'),
     });
     expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel or warn for a documented Gemini 3 parallel function-call batch with only the first call signed', () => {
+    const firstSignature =
+      issue16298Fixture.toolCalls[0].providerMetadata?.googleVertex
+        ?.thoughtSignature ??
+      issue16298Fixture.toolCalls[0].providerMetadata?.vertex?.thoughtSignature;
+
+    expect(firstSignature).toBeTruthy();
+    expect(issue16298Fixture.toolCalls[1].providerMetadata).toBeNull();
+
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Check the weather in Paris and Tokyo.',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                googleVertex: { thoughtSignature: firstSignature },
+                vertex: { thoughtSignature: firstSignature },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { city: 'Paris', tempC: 21, conditions: 'sunny' },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { city: 'Tokyo', tempC: 24, conditions: 'sunny' },
+              },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts).toStrictEqual([
+      {
+        functionCall: {
+          id: 'tc_paris',
+          name: 'get_weather',
+          args: { city: 'Paris' },
+        },
+        thoughtSignature: firstSignature,
+      },
+      {
+        functionCall: {
+          id: 'tc_tokyo',
+          name: 'get_weather',
+          args: { city: 'Tokyo' },
+        },
+      },
+    ]);
+    expect(onWarning).not.toHaveBeenCalled();
   });
 
   it('does NOT inject the sentinel for non-Gemini-3 models', () => {

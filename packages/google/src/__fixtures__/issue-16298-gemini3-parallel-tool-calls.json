@@ -1,0 +1,40 @@
+{
+  "capturedAt": "2026-07-09",
+  "provider": "gateway",
+  "model": "google/gemini-3.1-flash-lite",
+  "prompt": "Use the get_weather tool to check the weather in Paris and Tokyo in parallel in the same assistant step, then summarize.",
+  "warnings": [
+    {
+      "type": "other",
+      "message": "Replayed 1 `functionCall` part(s) for a Gemini 3 model without a `thoughtSignature` (tools: `get_weather`). Injected the documented `skip_thought_signature_validator` sentinel to keep the request from failing with HTTP 400. The likely cause is application code that drops `providerOptions.google.thoughtSignature` when persisting or serializing assistant tool-call messages. See https://ai.google.dev/gemini-api/docs/thought-signatures."
+    }
+  ],
+  "toolCalls": [
+    {
+      "step": 0,
+      "toolName": "get_weather",
+      "thoughtSignature": "present",
+      "providerMetadata": {
+        "googleVertex": {
+          "thoughtSignature": "AY89a18cQIBavtrXtrOBITFPVtz8vFtAN3GAhYMpFToaLZLimjftIYce6awl9EQyMF8="
+        },
+        "vertex": {
+          "thoughtSignature": "AY89a18cQIBavtrXtrOBITFPVtz8vFtAN3GAhYMpFToaLZLimjftIYce6awl9EQyMF8="
+        }
+      }
+    },
+    {
+      "step": 0,
+      "toolName": "get_weather",
+      "thoughtSignature": "absent",
+      "providerMetadata": null
+    }
+  ],
+  "summary": {
+    "toolCallCount": 2,
+    "signedToolCallCount": 1,
+    "unsignedToolCallCount": 1,
+    "hasSkipThoughtSignatureValidatorWarning": true,
+    "reproduced": true
+  }
+}
