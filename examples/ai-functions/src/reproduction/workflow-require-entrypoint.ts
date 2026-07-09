@@ -1,11 +1,16 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { parseJSON } from '@ai-sdk/provider-utils';
 
 const packageName = '@ai-sdk/workflow';
-const packageVersion = '1.0.17';
-const packageSpecifier = `${packageName}@${packageVersion}`;
 
 type CommandResult = {
   exitCode: number;
@@ -19,13 +24,18 @@ type NpmPackOutput = Array<{
 }>;
 
 type WorkflowPackageJson = {
+  name: string;
+  version: string;
+  type?: string;
   main: string;
+  module?: string;
   types: string;
   exports: {
     '.': {
       types: string;
       import: string;
-      require: string;
+      require?: string;
+      default?: string;
     };
   };
 };
@@ -89,15 +99,61 @@ async function runSuccessfulCommand(
   return result;
 }
 
+async function symlinkDependency({
+  dependencyName,
+  sourceNodeModulesDirectory,
+  targetNodeModulesDirectory,
+}: {
+  dependencyName: string;
+  sourceNodeModulesDirectory: string;
+  targetNodeModulesDirectory: string;
+}) {
+  const sourcePath = join(
+    sourceNodeModulesDirectory,
+    ...dependencyName.split('/'),
+  );
+  const targetPath = join(
+    targetNodeModulesDirectory,
+    ...dependencyName.split('/'),
+  );
+
+  await mkdir(dirname(targetPath), { recursive: true });
+  await symlink(
+    sourcePath,
+    targetPath,
+    process.platform === 'win32' ? 'junction' : 'dir',
+  );
+}
+
 async function main() {
+  const repositoryRoot = join(process.cwd(), '..', '..');
+  const workflowPackageSourceDirectory = join(
+    repositoryRoot,
+    'packages',
+    'workflow',
+  );
+  const workflowPackageNodeModulesDirectory = join(
+    workflowPackageSourceDirectory,
+    'node_modules',
+  );
   const tempDirectory = await mkdtemp(
     join(process.cwd(), '.tmp-workflow-require-entrypoint-'),
   );
 
   try {
+    await runSuccessfulCommand('pnpm', ['--filter', packageName, 'build'], {
+      cwd: repositoryRoot,
+    });
+
     const packResult = await runSuccessfulCommand(
       'npm',
-      ['pack', packageSpecifier, '--json', '--pack-destination', tempDirectory],
+      [
+        'pack',
+        workflowPackageSourceDirectory,
+        '--json',
+        '--pack-destination',
+        tempDirectory,
+      ],
       { cwd: tempDirectory },
     );
 
@@ -108,16 +164,16 @@ async function main() {
 
     if (packedPackage == null) {
       throw new Error(
-        `npm pack did not return package data for ${packageSpecifier}`,
+        `npm pack did not return package data for ${packageName}`,
       );
     }
 
     const packedFiles = packedPackage.files.map(file => file.path).sort();
     const tarballPath = join(tempDirectory, packedPackage.filename);
     const projectDirectory = join(tempDirectory, 'project');
+    const projectNodeModulesDirectory = join(projectDirectory, 'node_modules');
     const scopedPackagesDirectory = join(
-      projectDirectory,
-      'node_modules',
+      projectNodeModulesDirectory,
       '@ai-sdk',
     );
     const workflowPackageDirectory = join(scopedPackagesDirectory, 'workflow');
@@ -135,6 +191,23 @@ async function main() {
       { cwd: tempDirectory },
     );
 
+    await Promise.all(
+      [
+        '@ai-sdk/provider',
+        '@ai-sdk/provider-utils',
+        'ai',
+        'ajv',
+        'workflow',
+        'zod',
+      ].map(dependencyName =>
+        symlinkDependency({
+          dependencyName,
+          sourceNodeModulesDirectory: workflowPackageNodeModulesDirectory,
+          targetNodeModulesDirectory: projectNodeModulesDirectory,
+        }),
+      ),
+    );
+
     const packageJson = (await parseJSON({
       text: await readFile(
         join(workflowPackageDirectory, 'package.json'),
@@ -142,29 +215,36 @@ async function main() {
       ),
     })) as WorkflowPackageJson;
 
-    const hasImportTarget = packedFiles.includes('dist/index.mjs');
-    const hasImportTypesTarget = packedFiles.includes('dist/index.d.mts');
-    const hasRequireTarget = packedFiles.includes('dist/index.js');
+    const hasImportTarget = packedFiles.includes('dist/index.js');
     const hasTypesTarget = packedFiles.includes('dist/index.d.ts');
+    const hasStaleImportTarget = packedFiles.includes('dist/index.mjs');
+    const hasStaleTypesTarget = packedFiles.includes('dist/index.d.mts');
 
     console.log(
-      `Packed ${packageSpecifier} tarball: ${packedPackage.filename}`,
+      `Packed local ${packageJson.name}@${packageJson.version} tarball: ${packedPackage.filename}`,
     );
     console.log('Published files:');
     for (const file of packedFiles) {
       console.log(`- ${file}`);
     }
     console.log('Declared package entry points:');
+    console.log(`- type: ${packageJson.type}`);
     console.log(`- main: ${packageJson.main}`);
+    console.log(`- module: ${packageJson.module ?? '<absent>'}`);
     console.log(`- types: ${packageJson.types}`);
     console.log(`- exports["."].types: ${packageJson.exports['.'].types}`);
     console.log(`- exports["."].import: ${packageJson.exports['.'].import}`);
-    console.log(`- exports["."].require: ${packageJson.exports['.'].require}`);
+    console.log(
+      `- exports["."].require: ${packageJson.exports['.'].require ?? '<absent>'}`,
+    );
+    console.log(
+      `- exports["."].default: ${packageJson.exports['.'].default ?? '<absent>'}`,
+    );
     console.log('Entrypoint files present:');
-    console.log(`- dist/index.mjs: ${hasImportTarget}`);
-    console.log(`- dist/index.d.mts: ${hasImportTypesTarget}`);
-    console.log(`- dist/index.js: ${hasRequireTarget}`);
+    console.log(`- dist/index.js: ${hasImportTarget}`);
     console.log(`- dist/index.d.ts: ${hasTypesTarget}`);
+    console.log(`- dist/index.mjs: ${hasStaleImportTarget}`);
+    console.log(`- dist/index.d.mts: ${hasStaleTypesTarget}`);
 
     const importResolveResult = await runCommand(
       process.execPath,
@@ -185,8 +265,8 @@ async function main() {
     await writeFile(
       requireProbePath,
       [
-        `require('${packageName}');`,
-        `console.log('require("${packageName}") succeeded');`,
+        `const workflow = require('${packageName}');`,
+        `console.log(Object.keys(workflow).sort().join(','));`,
       ].join('\n'),
     );
 
@@ -201,9 +281,40 @@ async function main() {
     console.log(`- stdout: ${requireResult.stdout.trim()}`);
     console.log(`- stderr: ${requireResult.stderr.trim()}`);
 
-    if (!hasImportTarget || !hasImportTypesTarget) {
+    if (packageJson.type !== 'module') {
       throw new Error(
-        'Expected the published tarball to contain ESM import files, but one or more were missing.',
+        'Expected package.json to declare "type": "module" so tsup emits dist/index.js and dist/index.d.ts.',
+      );
+    }
+
+    if (packageJson.module != null) {
+      throw new Error(
+        'Expected package.json not to declare a stale "module" entrypoint.',
+      );
+    }
+
+    if (
+      packageJson.main !== './dist/index.js' ||
+      packageJson.types !== './dist/index.d.ts' ||
+      packageJson.exports['.'].types !== './dist/index.d.ts' ||
+      packageJson.exports['.'].import !== './dist/index.js' ||
+      packageJson.exports['.'].default !== './dist/index.js' ||
+      packageJson.exports['.'].require != null
+    ) {
+      throw new Error(
+        'Expected package.json to point all public entrypoints at the published ESM build files.',
+      );
+    }
+
+    if (!hasImportTarget || !hasTypesTarget) {
+      throw new Error(
+        'Expected the packed tarball to contain the declared JavaScript and TypeScript entrypoint files.',
+      );
+    }
+
+    if (hasStaleImportTarget || hasStaleTypesTarget) {
+      throw new Error(
+        'Expected the packed tarball not to contain stale .mjs or .d.mts entrypoint files.',
       );
     }
 
@@ -213,15 +324,9 @@ async function main() {
       );
     }
 
-    if (hasRequireTarget || hasTypesTarget) {
-      throw new Error(
-        'Expected the published tarball to be missing the declared CommonJS or TypeScript entrypoint files.',
-      );
-    }
-
     if (requireResult.exitCode !== 0) {
       throw new Error(
-        `Expected require("${packageName}") to succeed, but it failed because ${packageSpecifier} declares a CommonJS entrypoint that is not published.`,
+        `Expected require("${packageName}") to succeed from the packed package entrypoint.`,
       );
     }
   } finally {
