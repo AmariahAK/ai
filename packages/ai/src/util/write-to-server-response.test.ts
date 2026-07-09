@@ -32,6 +32,31 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
+  it('should flush the ServerResponse after each written chunk when available', async () => {
+    const mockResponse = createMockServerResponse();
+    const flush = vi.fn();
+    (mockResponse as ServerResponse & { flush?: () => void }).flush = flush;
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        controller.close();
+      },
+    });
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.writtenChunks).toHaveLength(2);
+    expect(flush).toHaveBeenCalledTimes(2);
+  });
+
   describe('backpressure handling', () => {
     beforeEach(() => {
       vi.useFakeTimers();
