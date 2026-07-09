@@ -82,4 +82,48 @@ describe('convertToPerplexityMessages', () => {
       }).toThrow(UnsupportedFunctionalityError);
     });
   });
+
+  describe('file media types', () => {
+    it('converts a top-level-only "application" PDF into a file_url part', () => {
+      const pdfBase64 = 'JVBERi0xLjQ=';
+
+      const result = convertToPerplexityMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application',
+              data: pdfBase64,
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ]);
+
+      expect((result[0].content as unknown[])[0]).toEqual({
+        type: 'file_url',
+        file_url: { url: pdfBase64 },
+        file_name: 'doc.pdf',
+      });
+    });
+
+    it('throws for unsupported file media types instead of dropping them', () => {
+      expect(() =>
+        convertToPerplexityMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'audio/mpeg',
+                data: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4',
+                filename: 'clip.mp3',
+              },
+            ],
+          },
+        ]),
+      ).toThrow(UnsupportedFunctionalityError);
+    });
+  });
 });
