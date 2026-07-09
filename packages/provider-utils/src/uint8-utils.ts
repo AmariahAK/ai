@@ -3,6 +3,21 @@
 // "TypeError: Illegal invocation: function called with incorrect this reference"
 const { btoa, atob } = globalThis;
 
+/**
+ * Returns a Uint8Array backed by an ArrayBuffer.
+ *
+ * Creates a new view without copying when the input is already backed by an
+ * ArrayBuffer. SharedArrayBuffer-backed and cross-realm inputs are copied into
+ * a new ArrayBuffer.
+ */
+export function toArrayBufferBackedUint8Array(
+  value: Uint8Array,
+): Uint8Array<ArrayBuffer> {
+  return value.buffer instanceof ArrayBuffer
+    ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    : new Uint8Array(value);
+}
+
 export function convertBase64ToUint8Array(base64String: string) {
   const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const latin1string = atob(base64Url);

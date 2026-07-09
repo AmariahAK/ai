@@ -1,4 +1,7 @@
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  toArrayBufferBackedUint8Array,
+} from '@ai-sdk/provider-utils';
 import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
 const encoder = new TextEncoder();
@@ -8,10 +11,13 @@ function fromBase64url(str: string): Uint8Array<ArrayBuffer> {
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
-  const keyData = typeof secret === 'string' ? encoder.encode(secret) : secret;
+  const keyData =
+    typeof secret === 'string'
+      ? encoder.encode(secret)
+      : toArrayBufferBackedUint8Array(secret);
   return crypto.subtle.importKey(
     'raw',
-    keyData as BufferSource,
+    keyData,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify'],

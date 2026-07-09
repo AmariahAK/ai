@@ -68,7 +68,7 @@ export function asAsyncIterableStream<T>(
       }
     }
 
-    return {
+    const iterator: ReadableStreamAsyncIterator<T> = {
       /**
        * Reads the next chunk from the stream.
        * @returns A promise resolving to the next IteratorResult.
@@ -108,7 +108,17 @@ export function asAsyncIterableStream<T>(
         await cleanup(true);
         throw err;
       },
-    } as ReadableStreamAsyncIterator<T>;
+
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+
+      async [Symbol.asyncDispose](): Promise<void> {
+        await cleanup(true);
+      },
+    };
+
+    return iterator;
   };
 
   return stream as AsyncIterableStream<T>;

@@ -4,8 +4,6 @@ const DEFAULT_TAIL_LIMIT = 20;
 
 type BridgeProcessStreamName = 'stdout' | 'stderr';
 
-type TextDecoderPair = ReadableWritablePair<string, Uint8Array>;
-
 type SerializedError = {
   name?: string;
   message: string;
@@ -147,9 +145,7 @@ export async function forwardBridgeProcessStream({
   tailLimit?: number;
 }): Promise<void> {
   try {
-    const reader = stream
-      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
-      .getReader();
+    const reader = stream.pipeThrough(createTextDecoderStream()).getReader();
     const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();
@@ -167,9 +163,7 @@ export async function drainBridgeProcessStream(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream
-      .pipeThrough(new TextDecoderStream() as unknown as TextDecoderPair)
-      .getReader();
+    const reader = stream.getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;
@@ -216,4 +210,26 @@ function lineDecoder() {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function createTextDecoderStream(): TransformStream<
+  AllowSharedBufferSource,
+  string
+> {
+  const decoder = new TextDecoder();
+
+  return new TransformStream<AllowSharedBufferSource, string>({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, { stream: true });
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+    flush(controller) {
+      const text = decoder.decode();
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+  });
 }
