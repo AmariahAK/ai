@@ -50,7 +50,8 @@
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.9.14",
-    "typescript": "6.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
     "vitest": "4.1.6"
