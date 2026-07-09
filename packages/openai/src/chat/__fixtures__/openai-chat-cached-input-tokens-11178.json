@@ -1,0 +1,119 @@
+{
+  "issue": "11178",
+  "model": "gpt-4o-mini",
+  "description": "Recorded live OpenAI Chat Completions responses for prompt cache usage mapping.",
+  "attempts": [
+    {
+      "attempt": 1,
+      "responseId": "chatcmpl-Dzkk7Z94EQa81FigOK8zZPgxuirZX",
+      "model": "gpt-4o-mini-2024-07-18",
+      "rawCachedTokens": 0,
+      "sdkCachedInputTokens": 0,
+      "sdkUsage": {
+        "inputTokens": 10122,
+        "outputTokens": 1,
+        "totalTokens": 10123,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 0
+      },
+      "providerMetadata": {
+        "openai": {
+          "acceptedPredictionTokens": 0,
+          "rejectedPredictionTokens": 0
+        }
+      },
+      "rawResponseBody": {
+        "id": "chatcmpl-Dzkk7Z94EQa81FigOK8zZPgxuirZX",
+        "object": "chat.completion",
+        "created": 1783610059,
+        "model": "gpt-4o-mini-2024-07-18",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "ok",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 10122,
+          "completion_tokens": 1,
+          "total_tokens": 10123,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "fp_810e56f10f"
+      }
+    },
+    {
+      "attempt": 2,
+      "responseId": "chatcmpl-Dzkk95ZsXR00sJH1wE3qTGHxdGcrQ",
+      "model": "gpt-4o-mini-2024-07-18",
+      "rawCachedTokens": 9984,
+      "sdkCachedInputTokens": 9984,
+      "sdkUsage": {
+        "inputTokens": 10122,
+        "outputTokens": 1,
+        "totalTokens": 10123,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 9984
+      },
+      "providerMetadata": {
+        "openai": {
+          "acceptedPredictionTokens": 0,
+          "rejectedPredictionTokens": 0
+        }
+      },
+      "rawResponseBody": {
+        "id": "chatcmpl-Dzkk95ZsXR00sJH1wE3qTGHxdGcrQ",
+        "object": "chat.completion",
+        "created": 1783610061,
+        "model": "gpt-4o-mini-2024-07-18",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "ok",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 10122,
+          "completion_tokens": 1,
+          "total_tokens": 10123,
+          "prompt_tokens_details": {
+            "cached_tokens": 9984,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "fp_810e56f10f"
+      }
+    }
+  ]
+}

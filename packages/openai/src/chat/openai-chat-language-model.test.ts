@@ -1210,6 +1210,51 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should map cached_tokens from recorded live OpenAI response for issue #11178', async () => {
+    const fixture = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/openai-chat-cached-input-tokens-11178.json',
+        'utf8',
+      ),
+    ) as {
+      attempts: Array<{
+        rawCachedTokens: number;
+        rawResponseBody: {
+          usage?: {
+            prompt_tokens?: number;
+            completion_tokens?: number;
+            total_tokens?: number;
+          };
+        };
+      }>;
+    };
+
+    const cachedAttempt = fixture.attempts.find(
+      attempt => attempt.rawCachedTokens > 0,
+    );
+
+    if (cachedAttempt == null) {
+      throw new Error('Recorded fixture does not contain a cache hit.');
+    }
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: cachedAttempt.rawResponseBody,
+    };
+
+    const result = await provider.chat('gpt-4o-mini').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: cachedAttempt.rawResponseBody.usage?.prompt_tokens,
+      outputTokens: cachedAttempt.rawResponseBody.usage?.completion_tokens,
+      totalTokens: cachedAttempt.rawResponseBody.usage?.total_tokens,
+      reasoningTokens: 0,
+      cachedInputTokens: cachedAttempt.rawCachedTokens,
+    });
+  });
+
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
     prepareJsonResponse({
       usage: {
