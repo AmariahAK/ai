@@ -1,9 +1,9 @@
+import { createTextDecoderStream } from '@ai-sdk/provider-utils';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   type HttpChatTransportInitOptions,
 } from './http-chat-transport';
-import { createTextDecoderStream } from './process-text-stream';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
 import type { UIMessage } from './ui-messages';
 

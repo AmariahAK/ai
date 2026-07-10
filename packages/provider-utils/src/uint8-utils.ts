@@ -4,6 +4,34 @@
 const { btoa, atob } = globalThis;
 
 /**
+ * Creates a transform stream that decodes binary chunks into strings.
+ *
+ * Unlike `TextDecoderStream`, this accepts shared buffer sources, matching the
+ * input supported by `TextDecoder.decode`.
+ */
+export function createTextDecoderStream(): TransformStream<
+  AllowSharedBufferSource,
+  string
+> {
+  const decoder = new TextDecoder();
+
+  return new TransformStream<AllowSharedBufferSource, string>({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, { stream: true });
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+    flush(controller) {
+      const text = decoder.decode();
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+  });
+}
+
+/**
  * Returns a Uint8Array backed by an ArrayBuffer.
  *
  * Creates a new view without copying when the input is already backed by an

@@ -1,4 +1,7 @@
-import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
+import {
+  createTextDecoderStream,
+  type Experimental_SandboxProcess,
+} from '@ai-sdk/provider-utils';
 
 const DEFAULT_TAIL_LIMIT = 20;
 
@@ -210,26 +213,4 @@ function lineDecoder() {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function createTextDecoderStream(): TransformStream<
-  AllowSharedBufferSource,
-  string
-> {
-  const decoder = new TextDecoder();
-
-  return new TransformStream<AllowSharedBufferSource, string>({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-    flush(controller) {
-      const text = decoder.decode();
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-  });
 }

@@ -1,3 +1,5 @@
+import { createTextDecoderStream } from '@ai-sdk/provider-utils';
+
 export async function processTextStream({
   stream,
   onTextPart,
@@ -13,26 +15,4 @@ export async function processTextStream({
     }
     await onTextPart(value);
   }
-}
-
-export function createTextDecoderStream(): TransformStream<
-  AllowSharedBufferSource,
-  string
-> {
-  const decoder = new TextDecoder();
-
-  return new TransformStream<AllowSharedBufferSource, string>({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-    flush(controller) {
-      const text = decoder.decode();
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-  });
 }

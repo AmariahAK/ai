@@ -1,4 +1,5 @@
 import {
+  createTextDecoderStream,
   safeParseJSON,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession,
@@ -274,26 +275,4 @@ function lineDecoder() {
       return line.length > 0 ? [line] : [];
     },
   };
-}
-
-function createTextDecoderStream(): TransformStream<
-  AllowSharedBufferSource,
-  string
-> {
-  const decoder = new TextDecoder();
-
-  return new TransformStream<AllowSharedBufferSource, string>({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-    flush(controller) {
-      const text = decoder.decode();
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-  });
 }

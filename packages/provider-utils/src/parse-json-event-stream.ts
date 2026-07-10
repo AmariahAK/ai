@@ -4,6 +4,7 @@ import {
 } from 'eventsource-parser/stream';
 import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
+import { createTextDecoderStream } from './uint8-utils';
 
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
@@ -30,26 +31,4 @@ export function parseJsonEventStream<T>({
         },
       }),
     );
-}
-
-function createTextDecoderStream(): TransformStream<
-  AllowSharedBufferSource,
-  string
-> {
-  const decoder = new TextDecoder();
-
-  return new TransformStream<AllowSharedBufferSource, string>({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-    flush(controller) {
-      const text = decoder.decode();
-      if (text.length > 0) {
-        controller.enqueue(text);
-      }
-    },
-  });
 }
