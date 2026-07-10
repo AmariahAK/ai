@@ -1,0 +1,63 @@
+{
+  "model": "claude-sonnet-4-5-20250929",
+  "id": "msg_011CctdGxFqq9wd9BWwXvDgY",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "I'll follow these steps in order."
+    },
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01M4mXhDsUwdg47obxPH4ZAQ",
+      "name": "web_fetch",
+      "input": {
+        "url": "https://httpbin.org/status/500"
+      }
+    },
+    {
+      "type": "web_fetch_tool_result",
+      "tool_use_id": "srvtoolu_01M4mXhDsUwdg47obxPH4ZAQ",
+      "content": {
+        "type": "web_fetch_tool_result_error",
+        "error_code": "url_not_accessible"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    },
+    {
+      "type": "text",
+      "text": "Now I'll call display_products as instructed:"
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01M48QRiAhRAtxKfsCrc831L",
+      "name": "display_products",
+      "input": {},
+      "caller": {
+        "type": "direct"
+      }
+    }
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 2448,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 119,
+    "service_tier": "standard",
+    "inference_geo": "not_available",
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 1
+    }
+  }
+}
