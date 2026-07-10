@@ -1,0 +1,42 @@
+{
+  "model": "claude-sonnet-4-5-20250929",
+  "id": "msg_011Cctfw4PUmLoWuBZxAD3tS",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "web_fetch_tool_result",
+      "tool_use_id": "srvtoolu_01YLvnKz3B4whrw1vbfoMEbn",
+      "content": {
+        "type": "web_fetch_tool_result_error",
+        "error_code": "url_not_accessible"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    },
+    {
+      "type": "text",
+      "text": "Step 4: display_products has returned.\n\nDONE"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 1431,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 16,
+    "service_tier": "standard",
+    "inference_geo": "not_available",
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 1
+    }
+  }
+}
