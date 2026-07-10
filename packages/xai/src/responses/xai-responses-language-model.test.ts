@@ -40,6 +40,7 @@ describe('XaiResponsesLanguageModel', () => {
     const chunks = fs
       .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
+      .filter(line => line.length > 0)
       .map(line => `data: ${line}\n\n`);
     chunks.push('data: [DONE]\n\n');
 
@@ -3606,6 +3607,25 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('error event handling', () => {
+    it('should accept the live grok-4.3 response for a slash-containing enum tool schema', async () => {
+      prepareChunksFixtureResponse('issue-14932-grok-4.3-slash-enum');
+
+      const { stream } = await createModel('grok-4.3').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: 'text-msg_d20009fb-ae51-9742-9ffc-6650fcb0f0d1',
+        delta: 'OK',
+      });
+      expect(parts).not.toContainEqual(
+        expect.objectContaining({ type: 'error' }),
+      );
+    });
+
     it('should emit error chunk for server error events', async () => {
       prepareStreamChunks([
         JSON.stringify({
