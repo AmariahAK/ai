@@ -560,8 +560,7 @@ describe('doStream', () => {
       'realtime',
       'openai-insecure-api-key.test-api-key',
     ]);
-    // regression: the api key rides the subprotocol, so the Authorization
-    // header must be stripped (OpenAI rejects handshakes that send both).
+    // OpenAI rejects handshakes that send both auth channels:
     expect(Object.keys(ws.options?.headers ?? {})).not.toContain(
       'Authorization',
     );
@@ -740,6 +739,57 @@ describe('doStream', () => {
       transcript: 'Hello',
     });
     await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('should strip undefined header values before the WebSocket constructor', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      headers: { 'Custom-Header': 'custom-value', 'X-Unset': undefined },
+    });
+
+    void result.stream.cancel();
+    const headers = MockWebSocket.instances[0].options?.headers ?? {};
+    expect(headers).not.toHaveProperty('X-Unset');
+    expect(Object.values(headers)).not.toContain(undefined);
+    expect(headers).toMatchObject({ 'Custom-Header': 'custom-value' });
+  });
+
+  it('should cancel the audio stream when the WebSocket constructor throws', async () => {
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: class {
+        constructor() {
+          throw new Error('constructor failed');
+        }
+      } as never,
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'constructor failed',
+    );
+    expect(audioCancelled).toBe(true);
   });
 
   it('should warn about unsupported non-streaming provider options', async () => {

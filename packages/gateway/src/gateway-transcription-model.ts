@@ -13,17 +13,16 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  getWebSocketConstructor,
+  connectToWebSocket,
   normalizeHeaders,
   parseTranscriptionStreamPart,
   postJsonToApi,
-  readWebSocketMessageText,
-  removeUndefinedEntries,
   resolve,
   TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
   TRANSCRIPTION_STREAM_START_FRAME_TYPE,
   type Experimental_TranscriptionStreamStartFrame,
   type Resolvable,
+  type WebSocketConnection,
   type WebSocketConstructor,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
@@ -234,15 +233,14 @@ function createGatewayTranscriptionStream({
 
   return new ReadableStream<TranscriptionModelV4StreamPart>({
     start: controller => {
-      let ws: WebSocketLike | undefined;
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
       let hasServerErrorPart = false;
       let lastServerError: unknown;
+      let connection: WebSocketConnection | undefined;
 
       cleanup = (closeCode?: number) => {
-        abortSignal?.removeEventListener('abort', abort);
         if (audioReader != null) {
           void audioReader.cancel().catch(() => {});
         } else {
@@ -251,9 +249,7 @@ function createGatewayTranscriptionStream({
           // producer piping into it hangs.
           void audio.cancel().catch(() => {});
         }
-        try {
-          ws?.close(closeCode);
-        } catch {}
+        connection?.close(closeCode);
       };
 
       const finishWithError = (error: unknown) => {
@@ -263,35 +259,7 @@ function createGatewayTranscriptionStream({
         void errorControllerWithGatewayError(controller, error, authMethod);
       };
 
-      const abort = () => {
-        if (finished) return;
-        finished = true;
-        cleanup();
-        controller.error(abortSignal?.reason ?? new Error('Aborted'));
-      };
-
-      if (abortSignal?.aborted) {
-        abort();
-        return;
-      }
-      abortSignal?.addEventListener('abort', abort, { once: true });
-
-      let socket: WebSocketLike;
-      try {
-        const WebSocketConstructor = getWebSocketConstructor(webSocket);
-        // Native `WebSocket` ignores headers (auth rides the subprotocols);
-        // header-capable implementations like `ws` forward them — and throw
-        // on undefined header values, so those entries are stripped first.
-        socket = new WebSocketConstructor(url, protocols, {
-          headers: removeUndefinedEntries(headers),
-        });
-      } catch (error) {
-        finishWithError(error);
-        return;
-      }
-      ws = socket;
-
-      const sendAudio = async () => {
+      const sendAudio = async (socket: WebSocketLike) => {
         audioReader = audio.getReader();
         try {
           while (true) {
@@ -316,58 +284,64 @@ function createGatewayTranscriptionStream({
         }
       };
 
-      socket.onopen = () => {
-        socket.send(JSON.stringify(startFrame));
-        void sendAudio().catch(finishWithError);
-      };
-
-      // Server frames are envelope-serialized stream parts; the codec handles
-      // parsing, unknown-part skipping, and timestamp revival.
-      socket.onmessage = event => {
-        void readWebSocketMessageText(event.data)
-          .then(text => {
-            if (finished) return;
-            const part = parseTranscriptionStreamPart(text);
-            if (part == null) return;
-
-            if (part.type === 'finish') {
-              finished = true;
-              controller.enqueue(part);
-              controller.close();
-              cleanup(1000);
-              return;
-            }
-
-            if (part.type === 'error') {
-              // Remembered so the terminal close error (the server closes
-              // non-1000 after an error part) surfaces the server's message
-              // to promise-based consumers.
-              hasServerErrorPart = true;
-              lastServerError = part.error;
-            }
-
+      connection = connectToWebSocket({
+        url,
+        protocols,
+        headers,
+        webSocket,
+        abortSignal,
+        onAbort: reason => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          controller.error(reason);
+        },
+        onProcessingError: finishWithError,
+        onOpen: socket => {
+          socket.send(JSON.stringify(startFrame));
+          void sendAudio(socket).catch(finishWithError);
+        },
+        // Server frames are envelope-serialized stream parts; the codec
+        // handles parsing, unknown-part skipping, and timestamp revival.
+        onMessageText: text => {
+          if (finished) return;
+          const part = parseTranscriptionStreamPart(text);
+          if (part == null) return;
+          if (part.type === 'finish') {
+            finished = true;
             controller.enqueue(part);
-          })
-          .catch(finishWithError);
-      };
+            controller.close();
+            cleanup(1000);
+            return;
+          }
 
-      socket.onerror = () => {
-        finishWithError(
-          new Error('Connection error on AI Gateway transcription stream'),
-        );
-      };
+          if (part.type === 'error') {
+            // Remembered so the terminal close error (the server closes
+            // non-1000 after an error part) surfaces the server's message
+            // to promise-based consumers.
+            hasServerErrorPart = true;
+            lastServerError = part.error;
+          }
 
-      socket.onclose = () => {
-        finishWithError(
-          hasServerErrorPart
-            ? new Error(
-                `AI Gateway transcription stream failed: ${getServerErrorMessage(lastServerError)}`,
-              )
-            : new Error(
-                'AI Gateway transcription stream closed before a finish part was received',
-              ),
-        );
-      };
+          controller.enqueue(part);
+        },
+        onSocketError: () => {
+          finishWithError(
+            new Error('Connection error on AI Gateway transcription stream'),
+          );
+        },
+        onClose: () => {
+          finishWithError(
+            hasServerErrorPart
+              ? new Error(
+                  `AI Gateway transcription stream failed: ${getServerErrorMessage(lastServerError)}`,
+                )
+              : new Error(
+                  'AI Gateway transcription stream closed before a finish part was received',
+                ),
+          );
+        },
+      });
     },
 
     cancel: () => {

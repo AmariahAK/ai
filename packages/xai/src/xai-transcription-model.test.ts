@@ -415,10 +415,62 @@ describe('doStream', () => {
     expect(result.response).toEqual({ timestamp: testDate, modelId: '' });
   });
 
-  // xAI re-sends a finalized utterance twice — `is_final: true` with
-  // `speech_final: false`, then the identical text with `speech_final: true` —
-  // and its `transcript.done` event carries an empty `text` (observed against
-  // the live API). Only `speech_final` marks a completed utterance.
+  it('should strip undefined header values before the WebSocket constructor', async () => {
+    MockWebSocket.instances = [];
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      headers: { 'Custom-Header': 'custom-value', 'X-Unset': undefined },
+    });
+
+    void result.stream.cancel();
+    const headers = MockWebSocket.instances[0].options?.headers ?? {};
+    expect(headers).not.toHaveProperty('X-Unset');
+    expect(Object.values(headers)).not.toContain(undefined);
+    expect(headers).toMatchObject({
+      Authorization: 'Bearer test-api-key',
+      'Custom-Header': 'custom-value',
+    });
+  });
+
+  it('should cancel the audio stream when the WebSocket constructor throws', async () => {
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: class {
+        constructor() {
+          throw new Error('constructor failed');
+        }
+      } as never,
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'constructor failed',
+    );
+    expect(audioCancelled).toBe(true);
+  });
+
+  // live API behavior: finals are re-sent (`speech_final` false then true)
+  // and `transcript.done` carries an empty `text`.
   it('should emit one transcript-final per utterance and reconstruct the finish text when transcript.done is empty', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
@@ -476,7 +528,7 @@ describe('doStream', () => {
         channelIndex: undefined,
       },
     ]);
-    // The speech_final:false re-send surfaces as a (revisable) partial.
+    // the speech_final:false re-send surfaces as a partial:
     expect(
       parts.filter(part => part.type === 'transcript-partial'),
     ).toHaveLength(2);
@@ -489,9 +541,8 @@ describe('doStream', () => {
     });
   });
 
-  // Live mic sessions show `is_final` *fragments* whose text the eventual
-  // `speech_final` event merges and re-punctuates — fragment text is still
-  // revisable and must not be emitted as transcript-final.
+  // live API behavior: `is_final` fragments get merged/re-punctuated by the
+  // eventual `speech_final` event, so they are not stable finals.
   it('should treat is_final fragments as partials and use the speech_final text for finish', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
