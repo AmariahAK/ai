@@ -1,93 +1,15 @@
+import { anthropic } from '@ai-sdk/anthropic';
 import { tool, type ModelMessage } from 'ai';
-import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { z } from 'zod/v4';
 import { WorkflowAgent } from '../../../../packages/workflow/dist/index.js';
 
-const narration = 'Found the root cause — implementing the fix now.';
-
-const usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
-};
+const narration = 'ISSUE-17123-NARRATION';
 
 async function main() {
-  let callCount = 0;
   let secondStepMessages: ModelMessage[] | undefined;
 
-  const model = new MockLanguageModelV4({
-    doStream: async () => {
-      if (callCount++ === 0) {
-        return {
-          stream: convertArrayToReadableStream([
-            { type: 'stream-start' as const, warnings: [] },
-            {
-              type: 'response-metadata' as const,
-              id: 'response-1',
-              modelId: 'mock-model',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start' as const, id: 'text-1' },
-            {
-              type: 'text-delta' as const,
-              id: 'text-1',
-              delta: narration,
-            },
-            { type: 'text-end' as const, id: 'text-1' },
-            {
-              type: 'tool-call' as const,
-              toolCallId: 'call-1',
-              toolName: 'applyFix',
-              input: '{}',
-            },
-            {
-              type: 'finish' as const,
-              finishReason: {
-                unified: 'tool-calls' as const,
-                raw: 'tool_calls',
-              },
-              usage,
-            },
-          ]),
-        };
-      }
-
-      return {
-        stream: convertArrayToReadableStream([
-          { type: 'stream-start' as const, warnings: [] },
-          {
-            type: 'response-metadata' as const,
-            id: 'response-2',
-            modelId: 'mock-model',
-            timestamp: new Date(0),
-          },
-          { type: 'text-start' as const, id: 'text-2' },
-          {
-            type: 'text-delta' as const,
-            id: 'text-2',
-            delta: 'Done.',
-          },
-          { type: 'text-end' as const, id: 'text-2' },
-          {
-            type: 'finish' as const,
-            finishReason: { unified: 'stop' as const, raw: 'stop' },
-            usage,
-          },
-        ]),
-      };
-    },
-  });
-
   const agent = new WorkflowAgent({
-    model,
+    model: anthropic('claude-haiku-4-5'),
     tools: {
       applyFix: tool({
         description: 'Apply the selected fix.',
@@ -98,13 +20,19 @@ async function main() {
     prepareStep: ({ stepNumber, messages }) => {
       if (stepNumber === 1) {
         secondStepMessages = messages as ModelMessage[];
+        return { toolChoice: 'none' };
       }
       return {};
     },
   });
 
   const result = await agent.stream({
-    messages: [{ role: 'user', content: 'Find and fix the bug.' }],
+    messages: [
+      {
+        role: 'user',
+        content: `Write exactly "${narration}" as visible text, then call the applyFix tool in the same response. Do not write any other text before the tool call.`,
+      },
+    ],
     writable: new WritableStream(),
   });
 
@@ -137,7 +65,9 @@ async function main() {
   );
 
   if (!narrationWasGenerated) {
-    throw new Error('The mock model did not generate the expected narration.');
+    throw new Error(
+      'The live model did not generate the expected narration before the tool call.',
+    );
   }
 
   if (!narrationWasCarriedForward) {

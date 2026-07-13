@@ -1,6 +1,8 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  LanguageModelV4TextPart,
+  LanguageModelV4ToolCallPart,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
@@ -391,27 +393,34 @@ export async function* streamTextIterator({
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        // Add assistant message with tool calls to the conversation
+        const textContent = step.content.filter(
+          item => item.type === 'text',
+        ) as LanguageModelV4TextPart[];
+
+        // Add assistant message with text and tool calls to the conversation
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
         // across multi-turn tool calls. Some fields are sanitized before mapping.
         conversationPrompt.push({
           role: 'assistant',
-          content: toolCalls.map(toolCall => {
-            const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-              toolCall.providerMetadata,
-            );
-            return {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input: toolCall.input,
-              ...(sanitizedMetadata != null
-                ? { providerOptions: sanitizedMetadata }
-                : {}),
-            };
-          }) as typeof toolCalls,
+          content: [
+            ...textContent,
+            ...(toolCalls.map(toolCall => {
+              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+                toolCall.providerMetadata,
+              );
+              return {
+                type: 'tool-call',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                ...(sanitizedMetadata != null
+                  ? { providerOptions: sanitizedMetadata }
+                  : {}),
+              };
+            }) as LanguageModelV4ToolCallPart[]),
+          ],
         });
 
         // Yield the tool calls along with the current conversation messages
@@ -444,7 +453,7 @@ export async function* streamTextIterator({
         // Add assistant message with text content to the conversation
         const textContent = step.content.filter(
           item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        ) as LanguageModelV4TextPart[];
 
         if (textContent.length > 0) {
           conversationPrompt.push({

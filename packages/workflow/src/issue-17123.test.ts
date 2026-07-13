@@ -118,8 +118,16 @@ it('preserves assistant text in the next prompt after a tool-calls finish', asyn
     message => message.role === 'assistant',
   );
 
-  expect(priorAssistantMessage?.content).toContainEqual({
-    type: 'text',
-    text: narration,
-  });
+  expect(priorAssistantMessage?.content).toEqual([
+    {
+      type: 'text',
+      text: narration,
+    },
+    {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'applyFix',
+      input: {},
+    },
+  ]);
 });
