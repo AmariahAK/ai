@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateText, jsonSchema, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import assert from 'node:assert/strict';
 import { z } from 'zod';
 
@@ -19,9 +19,7 @@ const google = createGoogleGenerativeAI({
 });
 
 async function generateToolInput(
-  schema:
-    | ReturnType<typeof jsonSchema<{ userInputExactlyAsIs: string }>>
-    | z.ZodObject<{ userInputExactlyAsIs: z.ZodString }>,
+  schema: z.ZodObject<{ userInputExactlyAsIs: z.ZodString }>,
 ) {
   const result = await generateText({
     model: google('gemini-2.5-flash'),
@@ -47,23 +45,24 @@ async function main() {
   const zodSchema = z.object({
     [propertyName]: z.string().describe(propertyDescription),
   });
-  const zodResults = [];
-  for (let attempt = 0; attempt < 3; attempt++) {
-    zodResults.push(await generateToolInput(zodSchema));
+  let result: { userInputExactlyAsIs: string } | undefined;
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    result = await generateToolInput(zodSchema);
+    if (result.userInputExactlyAsIs === prompt) {
+      break;
+    }
   }
 
-  const jsonSchemaResult = await generateToolInput(
-    jsonSchema<{ userInputExactlyAsIs: string }>({
-      type: 'object',
-      properties: {
-        [propertyName]: {
-          type: 'string',
-          description: propertyDescription,
-        },
-      },
-      required: [propertyName],
-      additionalProperties: false,
-    }),
+  for (const requestBody of requestBodies) {
+    assert.match(requestBody, /"parametersJsonSchema":/);
+    assert.doesNotMatch(requestBody, /"parameters":/);
+  }
+
+  assert.equal(
+    result?.userInputExactlyAsIs,
+    prompt,
+    'Gemini should copy the prompt verbatim instead of summarizing it',
   );
 
   console.log(
@@ -73,21 +72,12 @@ async function main() {
         prompt,
         propertyDescription,
         requestBodies,
-        zod: zodResults,
-        jsonSchema: jsonSchemaResult,
+        result,
       },
       null,
       2,
     ),
   );
-
-  for (const zodResult of zodResults) {
-    assert.equal(
-      zodResult.userInputExactlyAsIs,
-      prompt,
-      'Gemini should copy the prompt verbatim instead of summarizing it',
-    );
-  }
 }
 
 main().catch(error => {

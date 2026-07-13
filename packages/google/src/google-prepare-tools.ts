@@ -3,7 +3,6 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import type { GoogleModelId } from './google-language-model-options';
 
 export function prepareTools({
@@ -23,7 +22,7 @@ export function prepareTools({
             functionDeclarations: Array<{
               name: string;
               description: string;
-              parameters: unknown;
+              parametersJsonSchema: unknown;
             }>;
           }
         | Record<string, any>
@@ -187,14 +186,14 @@ export function prepareTools({
       const functionDeclarations: Array<{
         name: string;
         description: string;
-        parameters: unknown;
+        parametersJsonSchema: unknown;
       }> = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
           functionDeclarations.push({
             name: tool.name,
             description: tool.description ?? '',
-            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+            parametersJsonSchema: tool.inputSchema,
           });
         }
       }
@@ -253,7 +252,7 @@ export function prepareTools({
         functionDeclarations.push({
           name: tool.name,
           description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+          parametersJsonSchema: tool.inputSchema,
         });
         if (tool.strict === true) {
           hasStrictTools = true;
