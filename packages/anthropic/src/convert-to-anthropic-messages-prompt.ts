@@ -9,6 +9,7 @@ import {
 import {
   convertToBase64,
   parseProviderOptions,
+  safeParseJSON,
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import {
@@ -600,6 +601,35 @@ export async function convertToAnthropicMessagesPrompt({
                 if (part.toolName === 'web_fetch') {
                   const output = part.output;
 
+                  if (output.type === 'error-json') {
+                    const parsedOutput =
+                      typeof output.value === 'string'
+                        ? await safeParseJSON({ text: output.value })
+                        : { success: true as const, value: output.value };
+                    const errorValue = parsedOutput.success
+                      ? parsedOutput.value
+                      : undefined;
+                    const errorCode =
+                      errorValue != null &&
+                      typeof errorValue === 'object' &&
+                      'errorCode' in errorValue &&
+                      typeof errorValue.errorCode === 'string'
+                        ? errorValue.errorCode
+                        : 'unavailable';
+
+                    anthropicContent.push({
+                      type: 'web_fetch_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_fetch_tool_result_error',
+                        error_code: errorCode,
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
                   if (output.type !== 'json') {
                     warnings.push({
                       type: 'other',
@@ -629,7 +659,10 @@ export async function convertToAnthropicMessagesPrompt({
                           type: webFetchOutput.content.source.type,
                           media_type: webFetchOutput.content.source.mediaType,
                           data: webFetchOutput.content.source.data,
-                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                        } as Extract<
+                          AnthropicWebFetchToolResultContent['content'],
+                          { type: 'web_fetch_result' }
+                        >['content']['source'],
                       },
                     },
                     cache_control: cacheControl,

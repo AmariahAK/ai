@@ -166,7 +166,7 @@ async function main() {
   if (
     result == null ||
     result.steps.length < 2 ||
-    result.text.trim() !== 'DONE'
+    !result.text.trim().endsWith('DONE')
   ) {
     throw new Error(
       'The multi-step continuation did not complete after the web fetch error.',

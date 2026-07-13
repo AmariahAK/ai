@@ -1104,6 +1104,77 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_fetch tool call with error result', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              input: {
+                url: 'https://httpbin.org/status/500',
+              },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              output: {
+                type: 'error-json',
+                value: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "input": {
+                    "url": "https://httpbin.org/status/500",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "url_not_accessible",
+                    "type": "web_fetch_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: LanguageModelV2CallWarning[] = [];

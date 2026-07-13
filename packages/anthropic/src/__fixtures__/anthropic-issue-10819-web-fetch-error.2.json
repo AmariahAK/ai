@@ -5,17 +5,6 @@
   "role": "assistant",
   "content": [
     {
-      "type": "web_fetch_tool_result",
-      "tool_use_id": "srvtoolu_01YLvnKz3B4whrw1vbfoMEbn",
-      "content": {
-        "type": "web_fetch_tool_result_error",
-        "error_code": "url_not_accessible"
-      },
-      "caller": {
-        "type": "direct"
-      }
-    },
-    {
       "type": "text",
       "text": "Step 4: display_products has returned.\n\nDONE"
     }
@@ -33,10 +22,6 @@
     },
     "output_tokens": 16,
     "service_tier": "standard",
-    "inference_geo": "not_available",
-    "server_tool_use": {
-      "web_search_requests": 0,
-      "web_fetch_requests": 1
-    }
+    "inference_geo": "not_available"
   }
 }

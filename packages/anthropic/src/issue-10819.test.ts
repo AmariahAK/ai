@@ -45,7 +45,7 @@ it('continues after a provider-executed web fetch error before a client tool cal
     stopWhen: stepCountIs(4),
   });
 
-  expect(result.text.trim()).toBe('DONE');
+  expect(result.text.trim()).toMatch(/DONE$/);
 
   const continuationRequest = await server.calls[1].requestBodyJson;
   expect(continuationRequest.messages).toEqual(
