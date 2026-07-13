@@ -1,0 +1,38 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "capture",
+              "args": {
+                "userInputExactlyAsIs": "quarterly sales for the Seattle waterfront kiosk, location code SEA-WF-042"
+              }
+            },
+            "thoughtSignature": "Cp4JARFNMg/DLLbKZIw4tZX9QTuXEiROCc8cmkIOHGkPJN3CfidPI35WDNStT4wEb3+lmCv8/UOraR/2CgpRZ9oE5qzurPFCAr+TGcwWLWB1A23pvx4ySdMlMeTAPhP80S77jWcmmDoNm7snQVQEcyevUygxZlUF5SQj1undCwBV+MbSBG00WB8fARY5/4GnzlcrpypSDJ+CoKLDu2HSE7OG1Tg7rk2i2umOtdTi3OdzAwV8mdlXCj79efMCdaStAuRg/i8ucEA6IQIsJyPjZDBApAvhdmNLzWvBQM3BGrwyauzHBfJ3K+FASIwN2FaSUDNY8c8z/TTsRfxvvAHjUcypbdt1nXUeletF1OkRFTsz9BNOTHbVzMqwcpDM8GE1mXOw2nFqEv9lAp0+eEdkPX3v5AwaiZ64eeoFtUO0IGqX1rzoB0+jaRy0OkEd0YOFMkfmwfSUXp+73loBmBzGHjPZQGz2O7laYN7jVFl6G5NRu6A8qpA1rz6rPn7n99uu38MsVkv9rmk8qDvXEAzM8AvjkFK8MCXc6duefTkYSC94HnfiaG2SYt7xJr5e33eRbFzKqQ3i/28a+GjhXNG1k9+aOfIuqgBopcHbBpB1SqJnBlpDG7tnJApnLJ6mZ8HQbLKCik9XK03L8Sa2ycOAxR0x75dtdGegwfoG2r9aZMnfnvoslNoE+qoeJruyt3ky17Amk930VdfvctXvOvlsG+NexcW/Vzcs5mhErD7M0A0lLfnWD12JBbAS5kjSopF3avYmJEpmQqTYdvbY5uP+oU7oVe9cPzGsQ83lzGU+e9QryuCIF0Tl2JZMv3sxas6dlg4C3uybM0neY7DZR9CyDb5RcIzQCUgelbe3JLWgKPr9uCmPZ8ZhZfwyKTky0RBRJpb8jo8oTikCTDCwYgY77AiShophH4ppam2Dg5IuziSvxmUdZEQi9j2GJPBlQOVRekcALtrDwJQ3RLh2ap1ALuWXiN2kmRvukgwVJRujgnh4/yUFgObBfZdjngF67Q4CmVAOItlMwTMbR/GYbQBH/dJtzPXs5rCDJSzcRtHe0L1dwCC5A+t2jvuKf438kUUY3myG9Q47uYOleFe3QylDwXJK/mnnIkT3EJ8u+/fgfJ0OLi+hdQZXDCxjyGdKXYePL5kXvubyEYkY5cAOVVuxisAan3EaKF7OFYt9twHuAsKjbWJ0Y493vnmeFtHWxqRWjz98Xo73rbrD0ITElKo651PwwKLZYYjfU5AD4GMwTww2LXpvKBRsgFszYUsQ71tfZCRm96XtoX/acWq1/IlD3xmr1HbqEQpNMDg23qFCiscUzNN/J7fNTBkRMG+EqIoMED1ggrPll5hVkZ3w/cDFb0XBcp26JbpvsR/Lq+62JPaVc2OtlY7XjOwXlmwOAInBY1ZdBlJAEAVFVe1aDPupb+DOYa1t4WQo2vMAMJaZkyv+0C47jqeot/cHg8aV35l2ii3eAGvpik+nJaqc8JllFMpAu0u/MAce1A5VWV2jLGrcCJYKe2Yv6wpe1o2FJkGBMjqaiqcezXdk9CN8qVyqhsAMiythbckaqmg+phELMXvm"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0,
+      "finishMessage": "Model generated function call(s)."
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 80,
+    "candidatesTokenCount": 33,
+    "totalTokenCount": 381,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 80
+      }
+    ],
+    "thoughtsTokenCount": 268,
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-2.5-flash",
+  "responseId": "t8tUapX6F7HTvdIP5IyrmQg"
+}

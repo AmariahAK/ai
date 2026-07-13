@@ -857,6 +857,61 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('issue #6855 should follow Zod property descriptions verbatim', async () => {
+      prepareJsonFixtureResponse('google-issue-6855-zod-tool-description');
+
+      const prompt =
+        'Show me quarterly sales for the Seattle waterfront kiosk, location code SEA-WF-042.';
+      const propertyDescription =
+        "The user's prompt as is, do not modify it or infer. Copy it verbatim.";
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'capture',
+            description: 'Capture the requested value.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                userInputExactlyAsIs: {
+                  type: 'string',
+                  description: propertyDescription,
+                },
+              },
+              required: ['userInputExactlyAsIs'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'capture' },
+        prompt: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+      });
+
+      expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                parameters: {
+                  properties: {
+                    userInputExactlyAsIs: {
+                      description: propertyDescription,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const toolCall = result.content.find(part => part.type === 'tool-call');
+      expect(toolCall?.input).toBe(
+        JSON.stringify({ userInputExactlyAsIs: prompt }),
+      );
+    });
   });
 
   describe('reasoning-gemini3', () => {
