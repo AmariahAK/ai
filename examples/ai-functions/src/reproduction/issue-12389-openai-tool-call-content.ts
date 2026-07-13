@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 type OpenAIMessage = {
@@ -15,142 +15,70 @@ type OpenAIChatRequest = {
   messages?: OpenAIMessage[];
 };
 
-function createChatCompletion({
-  content,
-  finishReason,
-  toolCall,
-}: {
-  content: string;
-  finishReason: 'stop' | 'tool_calls';
-  toolCall?: {
-    id: string;
-    name: string;
-    arguments: string;
-  };
-}) {
-  return {
-    id: `chatcmpl-reproduction-${toolCall?.id ?? 'final'}`,
-    object: 'chat.completion',
-    created: 1_750_000_000,
-    model: 'qwen3-coder:latest',
-    choices: [
-      {
-        index: 0,
-        message: {
-          role: 'assistant',
-          content,
-          ...(toolCall == null
-            ? {}
-            : {
-                tool_calls: [
-                  {
-                    id: toolCall.id,
-                    type: 'function',
-                    function: {
-                      name: toolCall.name,
-                      arguments: toolCall.arguments,
-                    },
-                  },
-                ],
-              }),
-        },
-        finish_reason: finishReason,
-      },
-    ],
-    usage: {
-      prompt_tokens: 10,
-      completion_tokens: 5,
-      total_tokens: 15,
-    },
-  };
-}
-
 async function main() {
   const requests: OpenAIChatRequest[] = [];
-  const responses = [
-    createChatCompletion({
-      content: '',
-      finishReason: 'tool_calls',
-      toolCall: {
-        id: 'call_lookup',
-        name: 'lookup',
-        arguments: '{"path":"demo.txt"}',
-      },
-    }),
-    createChatCompletion({
-      content: '',
-      finishReason: 'tool_calls',
-      toolCall: {
-        id: 'call_write_file',
-        name: 'write_file',
-        arguments: '{"path":"demo.txt","content":"hello"}',
-      },
-    }),
-    createChatCompletion({
-      content: 'File created.',
-      finishReason: 'stop',
-    }),
-  ];
-
   const openai = createOpenAI({
-    baseURL: 'http://localhost:11434/v1',
-    apiKey: 'ollama',
-    fetch: async (_url, options) => {
-      if (typeof options?.body !== 'string') {
-        throw new Error('Expected the OpenAI request body to be JSON text.');
+    fetch: async (url, options) => {
+      if (typeof options?.body === 'string') {
+        requests.push(JSON.parse(options.body) as OpenAIChatRequest);
       }
 
-      requests.push(JSON.parse(options.body) as OpenAIChatRequest);
-
-      const response = responses[requests.length - 1];
-      if (response == null) {
-        throw new Error('The SDK made more than three requests.');
-      }
-
-      return new Response(JSON.stringify(response), {
-        headers: { 'content-type': 'application/json' },
-      });
+      return fetch(url, options);
     },
   });
 
   const result = await generateText({
-    model: openai.chat('qwen3-coder:latest'),
-    prompt: 'Check whether demo.txt exists, then create it.',
+    model: openai.chat('gpt-4o'),
+    messages: [
+      {
+        role: 'user',
+        content: 'Check whether demo.txt exists.',
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call_lookup',
+            toolName: 'lookup',
+            input: { path: 'demo.txt' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call_lookup',
+            toolName: 'lookup',
+            output: {
+              type: 'json',
+              value: { path: 'demo.txt', exists: false },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: 'The lookup is complete. Reply exactly: File created.',
+      },
+    ],
     tools: {
       lookup: tool({
+        description: 'Check whether a file exists.',
         inputSchema: z.object({ path: z.string() }),
-        execute: async ({ path }) => ({ path, exists: false }),
-      }),
-      write_file: tool({
-        inputSchema: z.object({
-          path: z.string(),
-          content: z.string(),
-        }),
-        execute: async ({ path, content }) => ({
-          path,
-          bytesWritten: content.length,
-        }),
       }),
     },
-    stopWhen: stepCountIs(3),
+    toolChoice: 'none',
+    temperature: 0,
   });
 
-  const toolCallOnlyAssistantMessages = new Map<string, OpenAIMessage>();
-
-  for (const request of requests.slice(1)) {
-    for (const message of request.messages ?? []) {
-      const toolCallId = message.tool_calls?.[0]?.id;
-      if (message.role === 'assistant' && toolCallId != null) {
-        toolCallOnlyAssistantMessages.set(toolCallId, message);
-      }
-    }
-  }
-
-  const observed = [...toolCallOnlyAssistantMessages.values()].map(message => ({
-    content: message.content,
-    toolCallId: message.tool_calls?.[0]?.id,
-    toolName: message.tool_calls?.[0]?.function?.name,
-  }));
+  const assistantToolCallMessage = requests[0]?.messages?.find(
+    message =>
+      message.role === 'assistant' &&
+      message.tool_calls?.[0]?.id === 'call_lookup',
+  );
 
   console.log(
     JSON.stringify(
@@ -158,18 +86,18 @@ async function main() {
         requestCount: requests.length,
         finalText: result.text,
         expectedAssistantToolCallContent: null,
-        observedAssistantToolCallMessages: observed,
-        reproducesIssue12389: observed.some(message => message.content === ''),
+        observedAssistantToolCallContent: assistantToolCallMessage?.content,
+        observedToolName:
+          assistantToolCallMessage?.tool_calls?.[0]?.function?.name,
       },
       null,
       2,
     ),
   );
 
-  const invalidMessage = observed.find(message => message.content !== null);
-  if (invalidMessage != null) {
+  if (assistantToolCallMessage?.content !== null) {
     throw new Error(
-      `Expected tool-call-only assistant content to be null, received ${JSON.stringify(invalidMessage.content)}.`,
+      `Expected tool-call-only assistant content to be null, received ${JSON.stringify(assistantToolCallMessage?.content)}.`,
     );
   }
 }

@@ -583,7 +583,7 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should stringify arguments to tool calls', () => {
+  it('should stringify arguments and use null content for tool-only assistant messages', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
@@ -614,7 +614,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
