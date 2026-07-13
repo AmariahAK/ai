@@ -19,6 +19,12 @@ const prompt: LanguageModelV4Prompt = [
   },
 ];
 
+const unknownContentPart = {
+  type: 'future-part',
+  text: { nested: true },
+  thinking: { nested: true },
+};
+
 describe('issue #13703: content arrays with thinking parts', () => {
   it('normalizes non-stream thinking and text parts', async () => {
     const body = JSON.parse(
@@ -27,10 +33,6 @@ describe('issue #13703: content arrays with thinking parts', () => {
         'utf8',
       ),
     );
-    body.choices[0].message.content.splice(1, 0, {
-      type: 'provider-specific',
-      value: 'ignored',
-    });
 
     server.urls[url].response = {
       type: 'json-value',
@@ -48,6 +50,28 @@ describe('issue #13703: content arrays with thinking parts', () => {
     ]);
   });
 
+  it('ignores unknown non-stream parts with arbitrary fields', async () => {
+    const body = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/issue-13703-mistral-thinking.json',
+        'utf8',
+      ),
+    );
+    body.choices[0].message.content = [
+      unknownContentPart,
+      { type: 'text', text: '391' },
+    ];
+
+    server.urls[url].response = {
+      type: 'json-value',
+      body,
+    };
+
+    const result = await model.doGenerate({ prompt });
+
+    expect(result.content).toEqual([{ type: 'text', text: '391' }]);
+  });
+
   it('normalizes streamed thinking and text parts without error events', async () => {
     const chunks = fs
       .readFileSync(
@@ -57,21 +81,6 @@ describe('issue #13703: content arrays with thinking parts', () => {
       .trim()
       .split('\n')
       .map(line => `data: ${line}\n\n`);
-    chunks.splice(
-      2,
-      0,
-      `data: ${JSON.stringify({
-        choices: [
-          {
-            index: 0,
-            delta: {
-              content: [{ type: 'provider-specific', value: 'ignored' }],
-            },
-            finish_reason: null,
-          },
-        ],
-      })}\n\n`,
-    );
     chunks.push('data: [DONE]\n\n');
 
     server.urls[url].response = {
@@ -93,5 +102,34 @@ describe('issue #13703: content arrays with thinking parts', () => {
         .filter(event => event.type === 'text-delta')
         .map(event => event.delta),
     ).toEqual(['4']);
+  });
+
+  it('ignores unknown streamed parts with arbitrary fields', async () => {
+    server.urls[url].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              index: 0,
+              delta: { content: [unknownContentPart] },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt });
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'error')).toEqual([]);
+    expect(
+      events.filter(
+        event =>
+          event.type === 'reasoning-delta' || event.type === 'text-delta',
+      ),
+    ).toEqual([]);
   });
 });

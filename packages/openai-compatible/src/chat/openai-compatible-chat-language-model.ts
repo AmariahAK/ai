@@ -101,15 +101,6 @@ type PendingToolCall = {
 
 const openAICompatibleChatContentPartSchema = z.looseObject({
   type: z.string(),
-  text: z.string().nullish(),
-  thinking: z
-    .array(
-      z.looseObject({
-        type: z.string().nullish(),
-        text: z.string().nullish(),
-      }),
-    )
-    .nullish(),
 });
 
 const openAICompatibleChatContentSchema = z
@@ -119,15 +110,21 @@ const openAICompatibleChatContentSchema = z
 function extractThinkingText(
   part: z.infer<typeof openAICompatibleChatContentPartSchema>,
 ) {
-  if (part.type !== 'thinking' || part.thinking == null) {
+  if (part.type !== 'thinking' || !Array.isArray(part.thinking)) {
     return undefined;
   }
 
-  const text = part.thinking
-    .filter(chunk => chunk.type === 'text')
-    .map(chunk => chunk.text)
-    .filter((text): text is string => text != null)
-    .join('');
+  let text = '';
+  for (const chunk of part.thinking) {
+    if (chunk == null || typeof chunk !== 'object') {
+      continue;
+    }
+
+    const chunkRecord = chunk as Record<string, unknown>;
+    if (chunkRecord.type === 'text' && typeof chunkRecord.text === 'string') {
+      text += chunkRecord.text;
+    }
+  }
 
   return text.length > 0 ? text : undefined;
 }
@@ -395,7 +392,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       }
     } else if (messageContent != null) {
       for (const part of messageContent) {
-        if (part.type === 'text' && part.text != null && part.text.length > 0) {
+        if (
+          part.type === 'text' &&
+          typeof part.text === 'string' &&
+          part.text.length > 0
+        ) {
           content.push({ type: 'text', text: part.text });
         } else {
           const reasoningText = extractThinkingText(part);
@@ -725,7 +726,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               enqueueTextDelta(delta.content);
             } else if (delta.content != null) {
               for (const part of delta.content) {
-                if (part.type === 'text' && part.text != null) {
+                if (part.type === 'text' && typeof part.text === 'string') {
                   enqueueTextDelta(part.text);
                 } else {
                   const reasoningDelta = extractThinkingText(part);
