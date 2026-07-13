@@ -21,14 +21,20 @@ const prompt: LanguageModelV4Prompt = [
 
 describe('issue #13703: content arrays with thinking parts', () => {
   it('normalizes non-stream thinking and text parts', async () => {
+    const body = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/issue-13703-mistral-thinking.json',
+        'utf8',
+      ),
+    );
+    body.choices[0].message.content.splice(1, 0, {
+      type: 'provider-specific',
+      value: 'ignored',
+    });
+
     server.urls[url].response = {
       type: 'json-value',
-      body: JSON.parse(
-        fs.readFileSync(
-          'src/chat/__fixtures__/issue-13703-mistral-thinking.json',
-          'utf8',
-        ),
-      ),
+      body,
     };
 
     const result = await model.doGenerate({ prompt });
@@ -51,6 +57,21 @@ describe('issue #13703: content arrays with thinking parts', () => {
       .trim()
       .split('\n')
       .map(line => `data: ${line}\n\n`);
+    chunks.splice(
+      2,
+      0,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            index: 0,
+            delta: {
+              content: [{ type: 'provider-specific', value: 'ignored' }],
+            },
+            finish_reason: null,
+          },
+        ],
+      })}\n\n`,
+    );
     chunks.push('data: [DONE]\n\n');
 
     server.urls[url].response = {

@@ -99,6 +99,39 @@ type PendingToolCall = {
   extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
 };
 
+const openAICompatibleChatContentPartSchema = z.looseObject({
+  type: z.string(),
+  text: z.string().nullish(),
+  thinking: z
+    .array(
+      z.looseObject({
+        type: z.string().nullish(),
+        text: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+});
+
+const openAICompatibleChatContentSchema = z
+  .union([z.string(), z.array(openAICompatibleChatContentPartSchema)])
+  .nullish();
+
+function extractThinkingText(
+  part: z.infer<typeof openAICompatibleChatContentPartSchema>,
+) {
+  if (part.type !== 'thinking' || part.thinking == null) {
+    return undefined;
+  }
+
+  const text = part.thinking
+    .filter(chunk => chunk.type === 'text')
+    .map(chunk => chunk.text)
+    .filter((text): text is string => text != null)
+    .join('');
+
+  return text.length > 0 ? text : undefined;
+}
+
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -355,9 +388,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const content: Array<LanguageModelV4Content> = [];
 
     // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+    const messageContent = choice.message.content;
+    if (typeof messageContent === 'string') {
+      if (messageContent.length > 0) {
+        content.push({ type: 'text', text: messageContent });
+      }
+    } else if (messageContent != null) {
+      for (const part of messageContent) {
+        if (part.type === 'text' && part.text != null && part.text.length > 0) {
+          content.push({ type: 'text', text: part.text });
+        } else {
+          const reasoningText = extractThinkingText(part);
+          if (reasoningText != null) {
+            content.push({ type: 'reasoning', text: reasoningText });
+          }
+        }
+      }
     }
 
     // reasoning content:
@@ -619,9 +665,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
-            // enqueue reasoning before text deltas:
-            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
-            if (reasoningContent) {
+            const enqueueReasoningDelta = (reasoningDelta: string) => {
+              if (reasoningDelta.length === 0) {
+                return;
+              }
+
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: 'txt-0' });
+                isActiveText = false;
+              }
+
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -633,12 +686,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: 'reasoning-0',
-                delta: reasoningContent,
+                delta: reasoningDelta,
               });
-            }
+            };
 
-            if (delta.content) {
-              // end active reasoning block before text starts
+            const enqueueTextDelta = (textDelta: string) => {
+              if (textDelta.length === 0) {
+                return;
+              }
+
               if (isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-end',
@@ -655,8 +711,29 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',
-                delta: delta.content,
+                delta: textDelta,
               });
+            };
+
+            // enqueue reasoning before text deltas:
+            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
+            if (reasoningContent) {
+              enqueueReasoningDelta(reasoningContent);
+            }
+
+            if (typeof delta.content === 'string') {
+              enqueueTextDelta(delta.content);
+            } else if (delta.content != null) {
+              for (const part of delta.content) {
+                if (part.type === 'text' && part.text != null) {
+                  enqueueTextDelta(part.text);
+                } else {
+                  const reasoningDelta = extractThinkingText(part);
+                  if (reasoningDelta != null) {
+                    enqueueReasoningDelta(reasoningDelta);
+                  }
+                }
+              }
             }
 
             if (delta.tool_calls != null) {
@@ -762,7 +839,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
     z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
+        content: openAICompatibleChatContentSchema,
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -802,7 +879,7 @@ const chunkBaseSchema = z.looseObject({
       delta: z
         .object({
           role: z.enum(['assistant', '']).nullish(),
-          content: z.string().nullish(),
+          content: openAICompatibleChatContentSchema,
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
           reasoning_content: z.string().nullish(),
