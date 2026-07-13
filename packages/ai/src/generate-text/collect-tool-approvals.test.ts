@@ -219,7 +219,7 @@ describe('collectToolApprovals', () => {
     `);
   });
 
-  it('should return processed approval with denied response and tool result', () => {
+  it('should return denied approval with an execution-denied tool result', () => {
     const result = collectToolApprovals({
       messages: [
         {
@@ -261,7 +261,30 @@ describe('collectToolApprovals', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "approvedToolApprovals": [],
-        "deniedToolApprovals": [],
+        "deniedToolApprovals": [
+          {
+            "approvalRequest": {
+              "approvalId": "approval-id-1",
+              "toolCallId": "call-1",
+              "type": "tool-approval-request",
+            },
+            "approvalResponse": {
+              "approvalId": "approval-id-1",
+              "approved": false,
+              "reason": "test-reason",
+              "type": "tool-approval-response",
+            },
+            "hasToolResult": true,
+            "toolCall": {
+              "input": {
+                "value": "test-input",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ],
       }
     `);
   });
@@ -580,6 +603,27 @@ describe('collectToolApprovals', () => {
                 "value": "test-input-4",
               },
               "toolCallId": "call-approval-4",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+          {
+            "approvalRequest": {
+              "approvalId": "approval-id-6",
+              "toolCallId": "call-approval-6",
+              "type": "tool-approval-request",
+            },
+            "approvalResponse": {
+              "approvalId": "approval-id-6",
+              "approved": false,
+              "type": "tool-approval-response",
+            },
+            "hasToolResult": true,
+            "toolCall": {
+              "input": {
+                "value": "test-input-6",
+              },
+              "toolCallId": "call-approval-6",
               "toolName": "tool1",
               "type": "tool-call",
             },

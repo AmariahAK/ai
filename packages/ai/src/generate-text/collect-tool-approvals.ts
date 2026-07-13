@@ -13,6 +13,9 @@ export type CollectedToolApprovals<TOOLS extends ToolSet> = {
   approvalRequest: ToolApprovalRequest;
   approvalResponse: ToolApprovalResponse;
   toolCall: TypedToolCall<TOOLS>;
+  // The existing result must be preserved while the denial is collected so
+  // streamText can emit tool-output-denied without adding a duplicate result.
+  hasToolResult?: true;
 };
 
 /**
@@ -100,7 +103,21 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       });
     }
 
-    if (toolResults[approvalRequest.toolCallId] != null) {
+    const toolResult = toolResults[approvalRequest.toolCallId];
+
+    // Execution-denied results can be synthesized while converting a denied
+    // UI tool part. Collect the denial so the UI stream can reach its terminal
+    // state, but continue skipping approvals with any other completed result.
+    if (
+      toolResult != null &&
+      !(
+        approvalResponse.approved === false &&
+        typeof toolResult.output === 'object' &&
+        toolResult.output != null &&
+        'type' in toolResult.output &&
+        toolResult.output.type === 'execution-denied'
+      )
+    ) {
       continue;
     }
 
@@ -116,6 +133,7 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       approvalRequest,
       approvalResponse,
       toolCall,
+      ...(toolResult != null ? { hasToolResult: true as const } : {}),
     };
 
     if (approvalResponse.approved) {

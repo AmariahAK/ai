@@ -1691,7 +1691,12 @@ class DefaultStreamTextResult<
           );
 
           // Local tool results (approved + denied) are sent as tool results:
-          if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+          if (
+            toolOutputs.length > 0 ||
+            localDeniedToolApprovals.some(
+              toolApproval => toolApproval.hasToolResult !== true,
+            )
+          ) {
             const localToolContent: ToolContent = [];
 
             // add regular tool results for approved tool calls:
@@ -1715,6 +1720,10 @@ class DefaultStreamTextResult<
 
             // add execution denied tool results for denied local tool approvals:
             for (const toolApproval of localDeniedToolApprovals) {
+              if (toolApproval.hasToolResult === true) {
+                continue;
+              }
+
               localToolContent.push({
                 type: 'tool-result' as const,
                 toolCallId: toolApproval.toolCall.toolCallId,

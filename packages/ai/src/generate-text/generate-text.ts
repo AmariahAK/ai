@@ -679,7 +679,9 @@ export async function generateText<
       });
 
       const deniedToolApprovals = [
-        ...collectedDeniedToolApprovals,
+        ...collectedDeniedToolApprovals.filter(
+          toolApproval => toolApproval.hasToolResult !== true,
+        ),
         ...revalidationDeniedToolApprovals,
       ];
 
