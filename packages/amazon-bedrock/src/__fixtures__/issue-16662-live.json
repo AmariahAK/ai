@@ -1,0 +1,66 @@
+{
+  "issue": 16662,
+  "modelId": "us.anthropic.claude-opus-4-8",
+  "region": "us-east-1",
+  "capturedRuns": [
+    [
+      {
+        "requestBody": "{\"system\":[],\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"You must call lookupAccount with accountId \\\"acct-16662\\\" and lookupPolicy with policyId \\\"policy-16662\\\" before answering. Approve when the account tier is gold and the policy limit is at least 100. Return the requested structured output.\"}]}],\"additionalModelResponseFieldPaths\":[\"/delta/stop_sequence\"],\"inferenceConfig\":{\"maxTokens\":400},\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"lookupAccount\",\"description\":\"Look up the account tier for an account ID.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"}},\"required\":[\"accountId\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}},{\"toolSpec\":{\"name\":\"lookupPolicy\",\"description\":\"Look up the numeric limit for a policy ID.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"policyId\":{\"type\":\"string\"}},\"required\":[\"policyId\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}},{\"toolSpec\":{\"name\":\"json\",\"description\":\"Respond with a JSON object.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"decision\":{\"type\":\"string\",\"enum\":[\"approve\",\"deny\"]},\"accountTier\":{\"type\":\"string\"},\"policyLimit\":{\"type\":\"number\"}},\"required\":[\"decision\",\"accountTier\",\"policyLimit\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}}],\"toolChoice\":{\"any\":{}}}}",
+        "responseBody": "{\"metrics\":{\"latencyMs\":1807},\"output\":{\"message\":{\"content\":[{\"toolUse\":{\"input\":{\"accountId\":\"acct-16662\"},\"name\":\"lookupAccount\",\"toolUseId\":\"tooluse_g0PvGHEYOr5K6FSQk7YmJY\",\"type\":\"tool_use\"}},{\"toolUse\":{\"input\":{\"policyId\":\"policy-16662\"},\"name\":\"lookupPolicy\",\"toolUseId\":\"tooluse_ZCBnqPwTeJiRFEhVEz442G\",\"type\":\"tool_use\"}}],\"role\":\"assistant\"}},\"stopReason\":\"tool_use\",\"usage\":{\"cacheReadInputTokenCount\":0,\"cacheReadInputTokens\":0,\"inputTokens\":888,\"outputTokens\":100,\"serverToolUsage\":{},\"totalTokens\":988}}",
+        "status": 200
+      },
+      {
+        "requestBody": "{\"system\":[],\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"You must call lookupAccount with accountId \\\"acct-16662\\\" and lookupPolicy with policyId \\\"policy-16662\\\" before answering. Approve when the account tier is gold and the policy limit is at least 100. Return the requested structured output.\"}]},{\"role\":\"assistant\",\"content\":[{\"toolUse\":{\"toolUseId\":\"tooluse_g0PvGHEYOr5K6FSQk7YmJY\",\"name\":\"lookupAccount\",\"input\":{\"accountId\":\"acct-16662\"}}},{\"toolUse\":{\"toolUseId\":\"tooluse_ZCBnqPwTeJiRFEhVEz442G\",\"name\":\"lookupPolicy\",\"input\":{\"policyId\":\"policy-16662\"}}}]},{\"role\":\"user\",\"content\":[{\"toolResult\":{\"toolUseId\":\"tooluse_g0PvGHEYOr5K6FSQk7YmJY\",\"content\":[{\"text\":\"{\\\"accountTier\\\":\\\"gold\\\"}\"}]}},{\"toolResult\":{\"toolUseId\":\"tooluse_ZCBnqPwTeJiRFEhVEz442G\",\"content\":[{\"text\":\"{\\\"policyLimit\\\":100}\"}]}}]}],\"additionalModelResponseFieldPaths\":[\"/delta/stop_sequence\"],\"inferenceConfig\":{\"maxTokens\":400},\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"lookupAccount\",\"description\":\"Look up the account tier for an account ID.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"}},\"required\":[\"accountId\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}},{\"toolSpec\":{\"name\":\"lookupPolicy\",\"description\":\"Look up the numeric limit for a policy ID.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"policyId\":{\"type\":\"string\"}},\"required\":[\"policyId\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}},{\"toolSpec\":{\"name\":\"json\",\"description\":\"Respond with a JSON object.\",\"inputSchema\":{\"json\":{\"type\":\"object\",\"properties\":{\"decision\":{\"type\":\"string\",\"enum\":[\"approve\",\"deny\"]},\"accountTier\":{\"type\":\"string\"},\"policyLimit\":{\"type\":\"number\"}},\"required\":[\"decision\",\"accountTier\",\"policyLimit\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}}}}],\"toolChoice\":{\"any\":{}}}}",
+        "responseBody": "{\"metrics\":{\"latencyMs\":3571},\"output\":{\"message\":{\"content\":[{\"toolUse\":{\"input\":{\"decision\":\"approve\",\"accountTier\":\"gold\",\"policyLimit\":100},\"name\":\"json\",\"toolUseId\":\"tooluse_XXnjLHuzNOyXidGjslVRf3\",\"type\":\"tool_use\"}}],\"role\":\"assistant\"}},\"stopReason\":\"tool_use\",\"usage\":{\"cacheReadInputTokenCount\":0,\"cacheReadInputTokens\":0,\"inputTokens\":1083,\"outputTokens\":87,\"serverToolUsage\":{},\"totalTokens\":1170}}",
+        "status": 200
+      }
+    ]
+  ],
+  "failures": [],
+  "representativeSummaries": [
+    {
+      "run": 1,
+      "output": {
+        "decision": "approve",
+        "accountTier": "gold",
+        "policyLimit": 100
+      },
+      "steps": 2,
+      "toolNames": [
+        "lookupAccount",
+        "lookupPolicy"
+      ]
+    },
+    {
+      "run": 2,
+      "output": {
+        "decision": "approve",
+        "accountTier": "gold",
+        "policyLimit": 100
+      },
+      "steps": 2,
+      "toolNames": [
+        "lookupAccount",
+        "lookupPolicy"
+      ]
+    },
+    {
+      "run": 3,
+      "output": {
+        "decision": "approve",
+        "accountTier": "gold",
+        "policyLimit": 100
+      },
+      "steps": 2,
+      "toolNames": [
+        "lookupAccount",
+        "lookupPolicy"
+      ]
+    }
+  ],
+  "batchSummary": {
+    "batchRuns": 30,
+    "failures": 0,
+    "successes": 30
+  }
+}
