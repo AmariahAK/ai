@@ -72,6 +72,7 @@ import {
 import type { Callback } from '../util/callback';
 import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { getOwn } from '../util/get-own';
@@ -125,6 +126,7 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
+import { isSmoothStreamTransform } from './smooth-stream';
 import { streamLanguageModelCall } from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
@@ -1439,6 +1441,52 @@ class DefaultStreamTextResult<
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
+    // smoothStream can otherwise delay visible text while upstream tool
+    // execution continues and overtakes it.
+    const delayToolExecution = transforms.some(isSmoothStreamTransform);
+    let availableToolExecutionBarriers = 0;
+    let toolExecutionBarriersReleased = false;
+    const pendingToolExecutionBarriers: Array<
+      ReturnType<typeof createResolvablePromise<void>>
+    > = [];
+
+    function waitForToolExecution() {
+      if (toolExecutionBarriersReleased) {
+        return Promise.resolve();
+      }
+
+      if (availableToolExecutionBarriers > 0) {
+        availableToolExecutionBarriers--;
+        return Promise.resolve();
+      }
+
+      const barrier = createResolvablePromise<void>();
+      pendingToolExecutionBarriers.push(barrier);
+      return barrier.promise;
+    }
+
+    function notifyToolCallEmitted() {
+      const barrier = pendingToolExecutionBarriers.shift();
+
+      if (barrier != null) {
+        barrier.resolve();
+      } else {
+        availableToolExecutionBarriers++;
+      }
+    }
+
+    function releaseToolExecutionBarriers() {
+      toolExecutionBarriersReleased = true;
+
+      for (const barrier of pendingToolExecutionBarriers.splice(0)) {
+        barrier.resolve();
+      }
+    }
+
+    abortSignal?.addEventListener('abort', releaseToolExecutionBarriers, {
+      once: true,
+    });
+
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
     let stream = new ReadableStream<TextStreamPart<TOOLS>>({
@@ -1522,6 +1570,31 @@ class DefaultStreamTextResult<
           stopStream() {
             stitchableStream.terminate();
             isRunning = false;
+            releaseToolExecutionBarriers();
+          },
+        }),
+      );
+    }
+
+    if (delayToolExecution) {
+      let hasEmittedToolCallForStep = false;
+
+      // Release tool execution only after the transformed tool call reaches
+      // the output stream, which guarantees preceding smoothed text was emitted.
+      stream = stream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(chunk);
+
+            if (chunk.type === 'start-step') {
+              hasEmittedToolCallForStep = false;
+            } else if (
+              chunk.type === 'tool-call' &&
+              !hasEmittedToolCallForStep
+            ) {
+              hasEmittedToolCallForStep = true;
+              notifyToolCallEmitted();
+            }
           },
         }),
       );
@@ -1999,6 +2072,9 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
+            waitForToolExecution: delayToolExecution
+              ? waitForToolExecution
+              : undefined,
           });
 
           // Conditionally include request.body based on include settings.

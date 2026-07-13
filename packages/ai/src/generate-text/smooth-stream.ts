@@ -10,6 +10,15 @@ const CHUNKING_REGEXPS = {
   line: /\n+/m,
 };
 
+const smoothStreamTransforms = new WeakSet<object>();
+
+/**
+ * Internal marker used to coordinate tool execution with smoothed output.
+ */
+export function isSmoothStreamTransform(transform: object): boolean {
+  return smoothStreamTransforms.has(transform);
+}
+
 /**
  * Detects the first chunk in a buffer.
  *
@@ -105,7 +114,7 @@ export function smoothStream<TOOLS extends ToolSet>({
     };
   }
 
-  return () => {
+  const transform = () => {
     let buffer = '';
     let id = '';
     let type: 'text-delta' | 'reasoning-delta' | undefined = undefined;
@@ -160,4 +169,8 @@ export function smoothStream<TOOLS extends ToolSet>({
       },
     });
   };
+
+  smoothStreamTransforms.add(transform);
+
+  return transform;
 }
