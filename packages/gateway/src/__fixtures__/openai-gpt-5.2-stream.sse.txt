@@ -1,0 +1,16 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"resp_04def9ac25d44674016a54a9559bf081928d5b862fdbc6aa74","timestamp":"2026-07-13T09:01:09.000Z","modelId":"gpt-5.2-2025-12-11"}
+
+data: {"type":"text-start","id":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659","providerMetadata":{"openai":{"itemId":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659"}}}
+
+data: {"type":"text-delta","id":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659","delta":"stream"}
+
+data: {"type":"text-delta","id":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659","delta":" completed"}
+
+data: {"type":"text-end","id":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659","providerMetadata":{"openai":{"itemId":"msg_04def9ac25d44674016a54a95601508192891e3102eddb9659"}}}
+
+data: {"type":"finish","finishReason":{"unified":"stop"},"usage":{"inputTokens":{"total":12,"noCache":12,"cacheRead":0,"cacheWrite":0},"outputTokens":{"total":6,"text":6,"reasoning":0},"raw":{"input_tokens":12,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens":6,"output_tokens_details":{"reasoning_tokens":0}}},"providerMetadata":{"openai":{"responseId":"resp_04def9ac25d44674016a54a9559bf081928d5b862fdbc6aa74","serviceTier":"default","reasoningContext":"current_turn"},"gateway":{"routing":{"originalModelId":"openai/gpt-5.2","resolvedProvider":"openai","fallbacksAvailable":["azure"],"planningReasoning":"System credentials planned for: openai, azure. Total execution order: openai(system) → azure(system)","canonicalSlug":"openai/gpt-5.2","finalProvider":"openai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"openai/gpt-5.2","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"openai","credentialType":"system","success":true,"startTime":1783933269520,"endTime":1783933270243,"providerRequestId":"req_7828c4ef2c35498f93dee693c7f85b1b","statusCode":200,"providerResponseId":"resp_04def9ac25d44674016a54a9559bf081928d5b862fdbc6aa74"}]}],"totalProviderAttemptCount":1},"cost":"0.000105","marketCost":"0.000105","surchargeCost":"0","gatewayCost":"0.000105","inferenceCost":"0.000105","inputInferenceCost":"0.000021","outputInferenceCost":"0.000084","generationId":"gen_01KXDBAX3SJ3PR9R3TZ1S3F9ZB"}}}
+
+DONE
+

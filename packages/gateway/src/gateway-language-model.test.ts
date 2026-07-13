@@ -4,6 +4,7 @@ import type {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -650,6 +651,36 @@ describe('GatewayLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should complete the recorded GPT-5.2 Gateway stream', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: fs
+          .readFileSync(
+            new URL(
+              './__fixtures__/openai-gpt-5.2-stream.sse.txt',
+              import.meta.url,
+            ),
+            'utf8',
+          )
+          .split(/(?<=\n\n)/),
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe('stream completed');
+      expect(parts.at(-1)?.type).toBe('finish');
     });
 
     it('should pass streaming headers', async () => {
