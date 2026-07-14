@@ -9,6 +9,7 @@ import {
   getGroundingMetadataSchema,
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
+import fs from 'node:fs';
 
 import type {
   GoogleGenerativeAIGroundingMetadata,
@@ -354,6 +355,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_2_0_FLASH_EXP =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
   const TEST_URL_GEMINI_1_0_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent';
 
@@ -364,6 +368,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
   });
@@ -391,6 +396,7 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
+      | typeof TEST_URL_GEMINI_2_5_FLASH
       | typeof TEST_URL_GEMINI_1_0_PRO
       | typeof TEST_URL_GEMINI_1_5_FLASH;
   }) => {
@@ -943,6 +949,63 @@ describe('doGenerate', () => {
         },
       },
     });
+  });
+
+  it('accepts responseSchema with lowercase JSON Schema types (issue #7689)', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-response-schema-7689.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await provider.languageModel('gemini-2.5-flash').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+          required: ['location'],
+          additionalProperties: false,
+        },
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return the location Paris.' }],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Return the location Paris.' }],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          required: ['location'],
+          type: 'object',
+          properties: {
+            location: {
+              type: 'string',
+            },
+          },
+        },
+      },
+    });
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: '{"location":"Paris"}',
+      providerMetadata: undefined,
+    });
+    expect(result.finishReason).toBe('stop');
   });
 
   it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
