@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MCPAppBridge } from './bridge';
 import {
   MCP_APP_DEFAULT_INNER_SANDBOX,
@@ -62,25 +62,25 @@ function sendToolState({
   }
 }
 
-export function MCPAppFrame({
-  app,
-  resource,
-  input,
-  output,
-  sandbox,
-  handlers,
-  hostInfo,
-  hostContext,
-}: MCPAppFrameProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const bridgeRef = useRef<MCPAppBridge | undefined>(undefined);
-  const inputRef = useRef(input);
-  const outputRef = useRef(output);
-  const hostContextRef = useRef(hostContext);
-  const initializedRef = useRef(false);
-  inputRef.current = input;
-  outputRef.current = output;
-  hostContextRef.current = hostContext;
+function useSessionKey(identity: readonly unknown[]): number {
+  const [session, setSession] = useState(() => ({ identity, key: 0 }));
+  const changed =
+    session.identity.length !== identity.length ||
+    session.identity.some((value, index) => !Object.is(value, identity[index]));
+
+  if (!changed) {
+    return session.key;
+  }
+
+  // React immediately retries this component before committing its children,
+  // so the old iframe never receives the new security-sensitive props.
+  const nextSession = { identity, key: session.key + 1 };
+  setSession(nextSession);
+  return nextSession.key;
+}
+
+export function MCPAppFrame(props: MCPAppFrameProps) {
+  const { app, resource, sandbox, hostInfo } = props;
   const sandboxUrl = String(sandbox.url);
   const targetOrigin =
     typeof window === 'undefined'
@@ -92,6 +92,72 @@ export function MCPAppFrame({
     sandbox.allowedPermissions,
   );
   const innerSandbox = sandbox.innerSandbox ?? MCP_APP_DEFAULT_INNER_SANDBOX;
+  const outerSandbox = sandbox.outerSandbox ?? MCP_APP_DEFAULT_OUTER_SANDBOX;
+
+  // A security-sensitive change must destroy the proxy browsing context, not
+  // just replace its bridge. Comparing effective primitive values avoids both
+  // needless reloads and copying potentially large HTML into a React key.
+  const sessionKey = useSessionKey([
+    sandboxUrl,
+    targetOrigin,
+    outerSandbox,
+    innerSandbox,
+    app.resourceUri,
+    resource.uri,
+    resource.html,
+    resourceCSP,
+    resourceAllow,
+    hostInfo?.name ?? 'ai-sdk-react',
+    hostInfo?.version ?? '1.0.0',
+  ]);
+
+  return (
+    <MCPAppFrameSession
+      key={sessionKey}
+      {...props}
+      sandboxUrl={sandboxUrl}
+      targetOrigin={targetOrigin}
+      resourceCSP={resourceCSP}
+      resourceAllow={resourceAllow}
+      innerSandbox={innerSandbox}
+      outerSandbox={outerSandbox}
+    />
+  );
+}
+
+function MCPAppFrameSession({
+  app,
+  resource,
+  input,
+  output,
+  sandbox,
+  handlers,
+  hostInfo,
+  hostContext,
+  sandboxUrl,
+  targetOrigin,
+  resourceCSP,
+  resourceAllow,
+  innerSandbox,
+  outerSandbox,
+}: MCPAppFrameProps & {
+  sandboxUrl: string;
+  targetOrigin?: string;
+  resourceCSP: string;
+  resourceAllow?: string;
+  innerSandbox: string;
+  outerSandbox: string;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const bridgeRef = useRef<MCPAppBridge | undefined>(undefined);
+  const hostInfoRef = useRef(hostInfo);
+  const inputRef = useRef(input);
+  const outputRef = useRef(output);
+  const hostContextRef = useRef(hostContext);
+  const initializedRef = useRef(false);
+  inputRef.current = input;
+  outputRef.current = output;
+  hostContextRef.current = hostContext;
   const bridgeHandlers = useMemo(
     () => ({
       ...handlers,
@@ -112,25 +178,16 @@ export function MCPAppFrame({
 
   useEffect(() => {
     const iframe = iframeRef.current;
-    const targetWindow = iframe?.contentWindow;
-    if (targetWindow == null || targetOrigin == null) {
+    if (iframe == null || targetOrigin == null) {
       return;
     }
 
     initializedRef.current = false;
-
-    const bridge = new MCPAppBridge({
-      targetWindow,
-      targetOrigin,
-      handlers: bridgeHandlersRef.current,
-      hostInfo,
-      hostContext: hostContextRef.current,
-    });
-    bridgeRef.current = bridge;
+    let bridge: MCPAppBridge | undefined;
 
     const onMessage = (event: MessageEvent) => {
       // Only handle messages from the proxy window and expected origin.
-      if (!bridge.acceptsEvent(event)) {
+      if (bridge == null || !bridge.acceptsEvent(event)) {
         return;
       }
 
@@ -151,16 +208,38 @@ export function MCPAppFrame({
     };
 
     window.addEventListener('message', onMessage);
+    // Navigate only after the listener is installed. A cached proxy can post
+    // its ready notification as soon as its document starts executing.
+    iframe.src = sandboxUrl;
+    const targetWindow = iframe.contentWindow;
+    if (targetWindow == null) {
+      window.removeEventListener('message', onMessage);
+      return;
+    }
+
+    bridge = new MCPAppBridge({
+      targetWindow,
+      targetOrigin,
+      handlers: bridgeHandlersRef.current,
+      hostInfo: hostInfoRef.current,
+      hostContext: hostContextRef.current,
+    });
+    bridgeRef.current = bridge;
 
     return () => {
       initializedRef.current = false;
       window.removeEventListener('message', onMessage);
-      void bridge.teardownResource().catch(() => {});
+      try {
+        void bridge.teardownResource().catch(() => {});
+      } catch {
+        // The browser may have already detached the browsing context.
+      }
       bridge.close();
       bridgeRef.current = undefined;
+      // Revoke the old browsing context immediately while React removes it.
+      iframe.src = 'about:blank';
     };
   }, [
-    hostInfo,
     innerSandbox,
     resource.html,
     resourceAllow,
@@ -196,10 +275,9 @@ export function MCPAppFrame({
       ref={iframeRef}
       title="MCP App"
       aria-label={sandbox.title ?? app.resourceUri}
-      src={sandboxUrl}
       className={sandbox.className}
       style={sandbox.style}
-      sandbox={sandbox.outerSandbox ?? MCP_APP_DEFAULT_OUTER_SANDBOX}
+      sandbox={outerSandbox}
     />
   );
 }
