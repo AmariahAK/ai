@@ -51,6 +51,7 @@ function loadMCPAppResource(app: MCPAppMetadata): Promise<MCPAppResource> {
 }
 
 const mcpAppHandlers: MCPAppBridgeHandlers = {
+  allowedTools: ['refreshDashboardData', 'showDiceGame'],
   callTool: params => callMCPAppHost('tools/call', params),
   readResource: params => callMCPAppHost('resources/read', params),
   openLink: ({ url }) => {

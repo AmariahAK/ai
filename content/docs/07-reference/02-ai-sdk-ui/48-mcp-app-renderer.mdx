@@ -60,6 +60,7 @@ async function loadResource(app: MCPAppMetadata): Promise<MCPAppResource> {
 }
 
 const handlers: MCPAppBridgeHandlers = {
+  allowedTools: ['refreshDashboardData'],
   callTool: params =>
     fetch('/api/mcp-app-host/call-tool', {
       method: 'POST',
@@ -198,6 +199,13 @@ export function MessagePart({ part }: { part: unknown }) {
       description:
         'Sandbox attribute sent to the proxy for the inner app iframe. Defaults to `allow-scripts allow-forms`.',
     },
+    {
+      name: 'allowedPermissions',
+      type: 'MCPAppPermission[]',
+      isOptional: true,
+      description:
+        'Browser capabilities the host may grant after intersecting them with valid resource requests. Omitting this deny-by-default allowlist grants no camera, microphone, geolocation, or clipboard-write access.',
+    },
   ]}
 />
 
@@ -212,7 +220,7 @@ export function MessagePart({ part }: { part: unknown }) {
       type: 'string[]',
       isOptional: true,
       description:
-        'Optional client-side allowlist checked before forwarding `tools/call` requests.',
+        'Client-side allowlist checked before forwarding `tools/call` requests. Omitting it exposes no tools.',
     },
     {
       name: 'callTool',

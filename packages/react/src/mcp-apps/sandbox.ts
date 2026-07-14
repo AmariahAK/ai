@@ -105,12 +105,53 @@ export type MCPAppPermission =
   | 'geolocation'
   | 'clipboardWrite';
 
+export type MCPAppGrantedPermissions = Partial<
+  Record<MCPAppPermission, Record<string, never>>
+>;
+
 const MCP_APP_PERMISSION_FEATURES: Record<MCPAppPermission, string> = {
   camera: 'camera',
   microphone: 'microphone',
   geolocation: 'geolocation',
   clipboardWrite: 'clipboard-write',
 };
+
+function isPermissionRequest(value: unknown): value is object {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Returns the permissions that are both validly requested by the resource and
+ * explicitly allowed by the host.
+ */
+export function getGrantedMCPAppPermissions(
+  permissions?: Record<string, unknown>,
+  allowedPermissions?: MCPAppPermission[],
+): MCPAppGrantedPermissions {
+  const granted: MCPAppGrantedPermissions = {};
+  if (
+    permissions == null ||
+    typeof permissions !== 'object' ||
+    Array.isArray(permissions) ||
+    allowedPermissions == null
+  ) {
+    return granted;
+  }
+
+  const allowed = new Set(allowedPermissions);
+  for (const permission of Object.keys(
+    MCP_APP_PERMISSION_FEATURES,
+  ) as MCPAppPermission[]) {
+    if (
+      allowed.has(permission) &&
+      isPermissionRequest(permissions[permission])
+    ) {
+      granted[permission] = {};
+    }
+  }
+
+  return granted;
+}
 
 /**
  * Converts MCP App permission metadata into an iframe `allow` attribute.
@@ -132,13 +173,10 @@ export function getMCPAppAllowAttribute(
   permissions?: Record<string, unknown>,
   allowedPermissions?: MCPAppPermission[],
 ): string | undefined {
-  if (permissions == null || allowedPermissions == null) {
-    return undefined;
-  }
-
-  const allow = allowedPermissions
-    .filter(permission => Boolean(permissions[permission]))
-    .map(permission => MCP_APP_PERMISSION_FEATURES[permission]);
+  const granted = getGrantedMCPAppPermissions(permissions, allowedPermissions);
+  const allow = (Object.keys(granted) as MCPAppPermission[]).map(
+    permission => MCP_APP_PERMISSION_FEATURES[permission],
+  );
 
   return allow.length > 0 ? allow.join('; ') : undefined;
 }

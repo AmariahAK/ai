@@ -1,4 +1,5 @@
 import { isJSONObject, type JSONObject } from '@ai-sdk/provider';
+import type { MCPAppGrantedPermissions } from './sandbox';
 import type {
   MCPAppBridgeHandlers,
   MCPAppContentBlock,
@@ -357,18 +358,21 @@ export class MCPAppBridge {
     handlers = {},
     hostInfo = { name: 'ai-sdk-react', version: '1.0.0' },
     hostContext = { displayMode: 'inline' },
+    grantedPermissions = {},
   }: {
     targetWindow: Window;
     targetOrigin: string;
     handlers?: MCPAppBridgeHandlers;
     hostInfo?: { name: string; version: string };
     hostContext?: MCPAppHostContext;
+    grantedPermissions?: MCPAppGrantedPermissions;
   }) {
     this.targetWindow = targetWindow;
     this.targetOrigin = normalizeTargetOrigin(targetOrigin);
     this.handlers = handlers;
     this.hostInfo = hostInfo;
     this.hostContext = hostContext;
+    this.grantedPermissions = grantedPermissions;
   }
 
   private targetWindow: Window;
@@ -376,6 +380,7 @@ export class MCPAppBridge {
   private handlers: MCPAppBridgeHandlers;
   private hostInfo: { name: string; version: string };
   private hostContext: MCPAppHostContext;
+  private grantedPermissions: MCPAppGrantedPermissions;
 
   /**
    * Replaces the callbacks used to serve iframe requests.
@@ -548,11 +553,39 @@ export class MCPAppBridge {
         return {
           protocolVersion: MCP_APP_PROTOCOL_VERSION,
           hostCapabilities: {
-            ...(this.handlers.callTool != null ? { serverTools: {} } : {}),
+            ...(this.handlers.callTool != null &&
+            (this.handlers.allowedTools?.length ?? 0) > 0
+              ? { serverTools: {} }
+              : {}),
             ...(this.handlers.readResource != null
               ? { serverResources: {} }
               : {}),
             ...(this.handlers.onLog != null ? { logging: {} } : {}),
+            ...(this.handlers.openLink != null ? { openLinks: {} } : {}),
+            ...(this.handlers.sendMessage != null
+              ? {
+                  message: {
+                    text: {},
+                    image: {},
+                    audio: {},
+                    resource: {},
+                    resourceLink: {},
+                  },
+                }
+              : {}),
+            ...(this.handlers.updateModelContext != null
+              ? {
+                  updateModelContext: {
+                    text: {},
+                    image: {},
+                    audio: {},
+                    resource: {},
+                    resourceLink: {},
+                    structuredContent: {},
+                  },
+                }
+              : {}),
+            sandbox: { permissions: this.grantedPermissions },
           },
           hostInfo: this.hostInfo,
           hostContext: this.hostContext,

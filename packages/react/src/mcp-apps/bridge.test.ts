@@ -54,7 +54,11 @@ describe('MCPAppBridge', () => {
           "id": 1,
           "jsonrpc": "2.0",
           "result": {
-            "hostCapabilities": {},
+            "hostCapabilities": {
+              "sandbox": {
+                "permissions": {},
+              },
+            },
             "hostContext": {
               "displayMode": "inline",
             },
@@ -68,6 +72,91 @@ describe('MCPAppBridge', () => {
         "https://proxy.example",
       ]
     `);
+  });
+
+  it('advertises only capabilities the host actually enforces', async () => {
+    const targetWindow = createTargetWindow();
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      targetOrigin,
+      grantedPermissions: { microphone: {} },
+      handlers: {
+        allowedTools: ['refreshDashboardData'],
+        callTool: vi.fn(),
+        readResource: vi.fn(),
+        openLink: vi.fn(),
+        sendMessage: vi.fn(),
+        updateModelContext: vi.fn(),
+        onLog: vi.fn(),
+      },
+    });
+
+    bridge.handleMessage(
+      messageEvent(targetWindow, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'ui/initialize',
+        params: initializeParams,
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+    expect(targetWindow.postMessage.mock.calls[0][0].result.hostCapabilities)
+      .toMatchInlineSnapshot(`
+        {
+          "logging": {},
+          "message": {
+            "audio": {},
+            "image": {},
+            "resource": {},
+            "resourceLink": {},
+            "text": {},
+          },
+          "openLinks": {},
+          "sandbox": {
+            "permissions": {
+              "microphone": {},
+            },
+          },
+          "serverResources": {},
+          "serverTools": {},
+          "updateModelContext": {
+            "audio": {},
+            "image": {},
+            "resource": {},
+            "resourceLink": {},
+            "structuredContent": {},
+            "text": {},
+          },
+        }
+      `);
+  });
+
+  it('does not advertise server tools when no tool is allowed', async () => {
+    const targetWindow = createTargetWindow();
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      targetOrigin,
+      handlers: { callTool: vi.fn() },
+    });
+
+    bridge.handleMessage(
+      messageEvent(targetWindow, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'ui/initialize',
+        params: initializeParams,
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+    expect(
+      targetWindow.postMessage.mock.calls[0][0].result.hostCapabilities,
+    ).toEqual({ sandbox: { permissions: {} } });
   });
 
   it('queues tool notifications until the app is initialized', () => {

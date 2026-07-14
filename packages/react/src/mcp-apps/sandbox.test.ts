@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getMCPAppAllowAttribute, getMCPAppCSP } from './sandbox';
+import {
+  getGrantedMCPAppPermissions,
+  getMCPAppAllowAttribute,
+  getMCPAppCSP,
+} from './sandbox';
 
 describe('getMCPAppCSP', () => {
   it('returns a restrictive policy when no csp is provided', () => {
@@ -141,5 +145,26 @@ describe('getMCPAppAllowAttribute', () => {
 
   it('returns undefined when the server requests no permissions', () => {
     expect(getMCPAppAllowAttribute(undefined, ['camera'])).toBeUndefined();
+  });
+
+  it('ignores malformed permission markers and duplicate host entries', () => {
+    expect(
+      getGrantedMCPAppPermissions(
+        {
+          camera: true,
+          microphone: {},
+          geolocation: [],
+          clipboardWrite: 'yes',
+        },
+        ['microphone', 'microphone', 'camera'],
+      ),
+    ).toEqual({ microphone: {} });
+    expect(
+      getMCPAppAllowAttribute({ microphone: {}, camera: true }, [
+        'microphone',
+        'microphone',
+        'camera',
+      ]),
+    ).toBe('microphone');
   });
 });

@@ -198,6 +198,7 @@ async function loadResource(app: MCPAppMetadata): Promise<MCPAppResource> {
 }
 
 const handlers: MCPAppBridgeHandlers = {
+  allowedTools: ['refreshDashboardData'],
   callTool: params =>
     fetch('/api/mcp-app-host/call-tool', {
       method: 'POST',
@@ -252,6 +253,7 @@ export default function Chat() {
 ## Best Practices
 
 - Treat MCP App HTML as untrusted content. Web hosts must render it through a sandbox proxy on a dedicated origin that has no host cookies, storage, service worker, authenticated routes, or application data.
+- Grant browser capabilities with `sandbox.allowedPermissions` only after host policy and, where appropriate, user consent. Resource metadata merely requests permission and grants nothing by itself.
 - Never pass app-only tools to the model. Use `splitMCPAppTools` and expose only `modelVisible` tools.
 - Validate every iframe request on the server before calling `client.callTool`.
 - Cache app resources by `resourceUri` so repeated tool calls do not refetch identical HTML.

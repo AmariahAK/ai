@@ -225,4 +225,70 @@ describe('MCPAppFrame session lifecycle', () => {
     expect(iframe.src).toBe('https://proxy.example/sandbox');
     expect(iframe.getAttribute('src')).toBe('https://proxy.example/sandbox');
   });
+
+  it('delegates only host-approved resource permissions', () => {
+    render(
+      <MCPAppFrame
+        app={app}
+        resource={{
+          ...resource,
+          meta: {
+            permissions: {
+              camera: {},
+              microphone: {},
+              geolocation: true,
+            },
+          },
+        }}
+        sandbox={{
+          url: 'https://proxy.example/sandbox',
+          allowedPermissions: ['microphone', 'geolocation'],
+        }}
+      />,
+    );
+
+    const iframe = screen.getByTitle('MCP App') as HTMLIFrameElement;
+    expect(iframe).toHaveAttribute('allow', 'microphone');
+
+    const postMessage = vi
+      .spyOn(iframe.contentWindow!, 'postMessage')
+      .mockImplementation(() => {});
+    dispatchProxyReady(iframe, 'https://proxy.example');
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({ allow: 'microphone' }),
+      }),
+      'https://proxy.example',
+    );
+  });
+
+  it('replaces the iframe when the effective permission grant changes', () => {
+    const permissionResource = {
+      ...resource,
+      meta: { permissions: { microphone: {} } },
+    };
+    const { rerender } = render(
+      <MCPAppFrame
+        app={app}
+        resource={permissionResource}
+        sandbox={{ url: 'https://proxy.example/sandbox' }}
+      />,
+    );
+    const initialIframe = screen.getByTitle('MCP App');
+
+    rerender(
+      <MCPAppFrame
+        app={app}
+        resource={permissionResource}
+        sandbox={{
+          url: 'https://proxy.example/sandbox',
+          allowedPermissions: ['microphone'],
+        }}
+      />,
+    );
+
+    expect(screen.getByTitle('MCP App')).not.toBe(initialIframe);
+    expect(screen.getByTitle('MCP App')).toHaveAttribute('allow', 'microphone');
+  });
 });

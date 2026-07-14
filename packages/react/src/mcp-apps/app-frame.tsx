@@ -3,6 +3,7 @@ import { MCPAppBridge } from './bridge';
 import {
   MCP_APP_DEFAULT_INNER_SANDBOX,
   MCP_APP_DEFAULT_OUTER_SANDBOX,
+  getGrantedMCPAppPermissions,
   getMCPAppAllowAttribute,
   getMCPAppCSP,
 } from './sandbox';
@@ -91,6 +92,10 @@ export function MCPAppFrame(props: MCPAppFrameProps) {
     resource.meta?.permissions,
     sandbox.allowedPermissions,
   );
+  const grantedPermissions = getGrantedMCPAppPermissions(
+    resource.meta?.permissions,
+    sandbox.allowedPermissions,
+  );
   const innerSandbox = sandbox.innerSandbox ?? MCP_APP_DEFAULT_INNER_SANDBOX;
   const outerSandbox = sandbox.outerSandbox ?? MCP_APP_DEFAULT_OUTER_SANDBOX;
 
@@ -119,6 +124,7 @@ export function MCPAppFrame(props: MCPAppFrameProps) {
       targetOrigin={targetOrigin}
       resourceCSP={resourceCSP}
       resourceAllow={resourceAllow}
+      grantedPermissions={grantedPermissions}
       innerSandbox={innerSandbox}
       outerSandbox={outerSandbox}
     />
@@ -138,6 +144,7 @@ function MCPAppFrameSession({
   targetOrigin,
   resourceCSP,
   resourceAllow,
+  grantedPermissions,
   innerSandbox,
   outerSandbox,
 }: MCPAppFrameProps & {
@@ -145,6 +152,7 @@ function MCPAppFrameSession({
   targetOrigin?: string;
   resourceCSP: string;
   resourceAllow?: string;
+  grantedPermissions: ReturnType<typeof getGrantedMCPAppPermissions>;
   innerSandbox: string;
   outerSandbox: string;
 }) {
@@ -223,6 +231,7 @@ function MCPAppFrameSession({
       handlers: bridgeHandlersRef.current,
       hostInfo: hostInfoRef.current,
       hostContext: hostContextRef.current,
+      grantedPermissions,
     });
     bridgeRef.current = bridge;
 
@@ -278,6 +287,7 @@ function MCPAppFrameSession({
       className={sandbox.className}
       style={sandbox.style}
       sandbox={outerSandbox}
+      allow={resourceAllow}
     />
   );
 }
