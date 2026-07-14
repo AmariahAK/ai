@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { getMCPAppAllowAttribute, getMCPAppCSP } from './sandbox';
 
 describe('getMCPAppCSP', () => {
-  it('returns undefined when no csp is provided', () => {
-    expect(getMCPAppCSP()).toBeUndefined();
+  it('returns a restrictive policy when no csp is provided', () => {
+    expect(getMCPAppCSP()).toBe(
+      "default-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; font-src 'self' data:; media-src 'self' data:; frame-src 'none'",
+    );
+    expect(getMCPAppCSP()).toBe(getMCPAppCSP({}));
   });
 
   it('includes valid domains in their directives', () => {
@@ -13,9 +16,9 @@ describe('getMCPAppCSP', () => {
       frameDomains: ['https://frame.example.com'],
     });
 
-    expect(csp).toContain("connect-src 'self' https://api.example.com");
+    expect(csp).toContain('connect-src https://api.example.com');
     expect(csp).toContain("img-src 'self' data: https://cdn.example.com");
-    expect(csp).toContain("frame-src 'self' https://frame.example.com");
+    expect(csp).toContain('frame-src https://frame.example.com');
   });
 
   it("locks down base-uri and form-action to 'none'", () => {
@@ -23,6 +26,7 @@ describe('getMCPAppCSP', () => {
 
     expect(csp).toContain("base-uri 'none'");
     expect(csp).toContain("form-action 'none'");
+    expect(csp).toContain("object-src 'none'");
   });
 
   it('preserves wildcard subdomains and explicit ports', () => {
@@ -31,7 +35,7 @@ describe('getMCPAppCSP', () => {
     });
 
     expect(csp).toContain(
-      "connect-src 'self' https://*.example.com https://api.example.com:8443",
+      'connect-src https://*.example.com https://api.example.com:8443',
     );
   });
 
@@ -47,8 +51,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('attacker.example');
     expect(csp).not.toContain('evil.example');
     expect(csp).not.toContain('script-src-elem');
-    // policy still has exactly its nine intended directives
-    expect(csp!.split(';')).toHaveLength(9);
+    // policy still has exactly its eleven intended directives
+    expect(csp.split(';')).toHaveLength(11);
     // untainted values are unaffected
     expect(csp).toContain('https://ok.example.com');
   });
@@ -63,8 +67,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('%3B');
     expect(csp).not.toContain('%2C');
     expect(csp).not.toContain(';b.example.com');
-    expect(csp).toContain("connect-src 'self';");
-    expect(csp!.split(';')).toHaveLength(9);
+    expect(csp).toContain("connect-src 'none';");
+    expect(csp.split(';')).toHaveLength(11);
   });
 
   it('drops match-all wildcards and quote characters', () => {
@@ -77,8 +81,8 @@ describe('getMCPAppCSP', () => {
       resourceDomains: ['https://ok.example.com'],
     });
 
-    // every connect source is rejected, leaving only 'self'
-    expect(csp).toContain("connect-src 'self';");
+    // every connect source is rejected, leaving the restrictive default
+    expect(csp).toContain("connect-src 'none';");
     expect(csp).not.toContain('"');
     expect(csp).not.toContain('https://*');
     // an untainted value is still allowed
@@ -96,7 +100,7 @@ describe('getMCPAppCSP', () => {
       ],
     });
 
-    expect(csp).toContain("connect-src 'self';");
+    expect(csp).toContain("connect-src 'none';");
     expect(csp).not.toContain('insecure.example.com');
     expect(csp).not.toContain('javascript:');
   });

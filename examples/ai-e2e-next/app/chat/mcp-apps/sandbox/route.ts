@@ -1,4 +1,17 @@
-const sandboxProxyHtml = `<!doctype html>
+const defaultAppCSP =
+  "default-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; font-src 'self' data:; media-src 'self' data:; frame-src 'none'";
+
+function normalizeOrigin(value: string): string | undefined {
+  try {
+    const origin = new URL(value).origin;
+    return origin === 'null' ? undefined : origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function createSandboxProxyHtml(expectedParentOrigin: string) {
+  return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -15,19 +28,40 @@ const sandboxProxyHtml = `<!doctype html>
   </head>
   <body>
     <script>
+      const expectedParentOrigin = ${JSON.stringify(expectedParentOrigin)};
+      const defaultAppCSP = ${JSON.stringify(defaultAppCSP)};
       let appFrame;
 
       function isJsonRpc(value) {
-        return value && value.jsonrpc === '2.0';
+        return value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          value.jsonrpc === '2.0';
+      }
+
+      function isReservedSandboxMessage(value) {
+        return isJsonRpc(value) &&
+          typeof value.method === 'string' &&
+          value.method.startsWith('ui/notifications/sandbox-');
+      }
+
+      function isResourceReadyParams(value) {
+        return value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          typeof value.html === 'string' &&
+          (value.csp === undefined || typeof value.csp === 'string') &&
+          (value.sandbox === undefined || typeof value.sandbox === 'string') &&
+          (value.allow === undefined || typeof value.allow === 'string');
       }
 
       function injectCSP(html, csp) {
-        if (!csp) return html;
-        const meta = '<meta http-equiv="Content-Security-Policy" content="' +
-          csp.replaceAll('"', '&quot;') + '">';
-        return html.includes('<head>')
-          ? html.replace('<head>', '<head>' + meta)
-          : meta + html;
+        const document = new DOMParser().parseFromString(html, 'text/html');
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'Content-Security-Policy';
+        meta.content = csp || defaultAppCSP;
+        document.head.prepend(meta);
+        return '<!doctype html>' + document.documentElement.outerHTML;
       }
 
       function createAppFrame(params) {
@@ -43,39 +77,68 @@ const sandboxProxyHtml = `<!doctype html>
 
       window.addEventListener('message', event => {
         const data = event.data;
+        const fromTrustedParent =
+          event.source === window.parent &&
+          event.origin === expectedParentOrigin;
 
-        // Only the trusted host window may (re)configure the inner iframe's
-        // sandbox and content. Without this source check the untrusted inner
-        // frame could forge a resource-ready message to grant itself
-        // 'allow-same-origin' and escape to the host origin.
-        if (
-          isJsonRpc(data) &&
-          data.method === 'ui/notifications/sandbox-resource-ready' &&
-          event.source === window.parent
-        ) {
-          createAppFrame(data.params || {});
+        if (fromTrustedParent) {
+          if (
+            isJsonRpc(data) &&
+            data.method === 'ui/notifications/sandbox-resource-ready' &&
+            isResourceReadyParams(data.params)
+          ) {
+            createAppFrame(data.params);
+            return;
+          }
+
+          if (isJsonRpc(data) && appFrame && !isReservedSandboxMessage(data)) {
+            // The inner srcdoc frame has an opaque origin by default, so a
+            // concrete postMessage target is impossible. The exact
+            // contentWindow check and reserved-message filter are the boundary.
+            appFrame.contentWindow.postMessage(data, '*');
+          }
           return;
         }
 
-        if (isJsonRpc(data) && appFrame && event.source === window.parent) {
-          appFrame.contentWindow.postMessage(data, '*');
-        } else if (isJsonRpc(data) && event.source === appFrame?.contentWindow) {
-          window.parent.postMessage(data, '*');
+        if (
+          isJsonRpc(data) &&
+          event.source === appFrame?.contentWindow &&
+          !isReservedSandboxMessage(data)
+        ) {
+          window.parent.postMessage(data, expectedParentOrigin);
         }
       });
 
       window.parent.postMessage({
         jsonrpc: '2.0',
         method: 'ui/notifications/sandbox-proxy-ready'
-      }, '*');
+      }, expectedParentOrigin);
     </script>
   </body>
 </html>`;
+}
 
-export function GET() {
-  return new Response(sandboxProxyHtml, {
+export function GET(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+  const configuredHostOrigin = process.env.MCP_APP_HOST_ORIGIN;
+  const expectedParentOrigin = normalizeOrigin(
+    configuredHostOrigin ?? requestOrigin,
+  );
+
+  if (expectedParentOrigin == null) {
+    return new Response('MCP_APP_HOST_ORIGIN must be a concrete origin', {
+      status: 500,
+    });
+  }
+
+  return new Response(createSandboxProxyHtml(expectedParentOrigin), {
     headers: {
+      'cache-control': 'no-store',
+      'content-security-policy':
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-src 'self'",
       'content-type': 'text/html; charset=utf-8',
+      'cross-origin-resource-policy': 'cross-origin',
+      'x-content-type-options': 'nosniff',
     },
   });
 }

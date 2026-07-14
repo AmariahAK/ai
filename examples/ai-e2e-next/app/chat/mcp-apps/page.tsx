@@ -14,8 +14,11 @@ import { DefaultChatTransport, isToolUIPart } from 'ai';
 
 const chatTransport = new DefaultChatTransport({ api: '/chat/mcp-apps/chat' });
 
+// The relative fallback is for local development only. Production deployments
+// must set this to a dedicated sandbox-proxy origin with no host cookies,
+// storage, service worker, authenticated routes, or other application data.
 const mcpAppSandbox = {
-  url: '/chat/mcp-apps/sandbox',
+  url: process.env.NEXT_PUBLIC_MCP_APP_SANDBOX_URL ?? '/chat/mcp-apps/sandbox',
   className:
     'block w-full h-80 overflow-hidden rounded-lg border border-blue-200 bg-white',
   style: { border: 0 },

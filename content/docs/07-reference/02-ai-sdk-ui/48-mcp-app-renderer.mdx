@@ -35,8 +35,13 @@ import {
 } from '@ai-sdk/react';
 import { isToolUIPart } from 'ai';
 
+const sandboxUrl = process.env.NEXT_PUBLIC_MCP_APP_SANDBOX_URL;
+if (sandboxUrl == null) {
+  throw new Error('NEXT_PUBLIC_MCP_APP_SANDBOX_URL is required');
+}
+
 const sandbox = {
-  url: '/mcp-app-sandbox',
+  url: sandboxUrl,
   className: 'h-80 w-full rounded-lg border',
   style: { border: 0 },
 } satisfies MCPAppSandboxConfig;
@@ -152,7 +157,7 @@ export function MessagePart({ part }: { part: unknown }) {
       name: 'url',
       type: 'string | URL',
       description:
-        'The URL of the sandbox proxy iframe. The proxy receives app HTML from the host and creates the inner app iframe.',
+        'The URL of the sandbox proxy iframe. In web hosts it must use a dedicated origin with no access to host cookies, storage, service workers, authenticated routes, or application data.',
     },
     {
       name: 'title',

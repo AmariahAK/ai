@@ -263,7 +263,7 @@ jobs:
         run: pnpm test:ci
 
   test_rsc_e2e:
-    name: 'Test RSC e2e'
+    name: 'Test browser e2e'
     runs-on: ubuntu-latest
     needs: build-packages
     steps:
@@ -279,7 +279,7 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Detect RSC e2e changes
+      - name: Detect browser e2e changes
         id: rsc-e2e
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
@@ -290,7 +290,7 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
 
-          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|packages/react/src/mcp-apps/|packages/mcp/src/tool/mcp-app|examples/ai-e2e-next/app/chat/mcp-apps/|examples/ai-e2e-next/tests/e2e/mcp-app-sandbox|examples/ai-e2e-next/playwright.config.ts$|pnpm-lock.yaml$|package.json$)'; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -396,6 +396,10 @@ jobs:
         if: steps.rsc-e2e.outputs.run == 'true'
         working-directory: packages/rsc
         run: pnpm test:e2e
+
+      - name: Run MCP Apps sandbox e2e tests
+        if: steps.rsc-e2e.outputs.run == 'true'
+        run: pnpm exec playwright test --config examples/ai-e2e-next/playwright.config.ts
 
   test_ai_matrix:
     name: 'Test AI'

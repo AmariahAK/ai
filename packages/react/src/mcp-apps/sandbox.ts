@@ -68,28 +68,30 @@ export const MCP_APP_DEFAULT_INNER_SANDBOX = 'allow-scripts allow-forms';
  * });
  * ```
  */
-export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
-  if (csp == null) {
-    return undefined;
-  }
-
-  const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
+export function getMCPAppCSP(csp?: MCPAppResourceCSP): string {
+  const connectDomains = sanitizeCSPSources(csp?.connectDomains);
+  const connectSrc = connectDomains.length === 0 ? ["'none'"] : connectDomains;
   const imgSrc = [
     "'self'",
     'data:',
-    ...sanitizeCSPSources(csp.resourceDomains),
+    ...sanitizeCSPSources(csp?.resourceDomains),
   ];
-  const frameSrc = ["'self'", ...sanitizeCSPSources(csp.frameDomains)];
+  const frameDomains = sanitizeCSPSources(csp?.frameDomains);
+  const frameSrc = frameDomains.length === 0 ? ["'none'"] : frameDomains;
 
   return [
     "default-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
+    "object-src 'none'",
+    // MCP Apps commonly ship inline scripts and styles. They remain contained
+    // by the inner iframe's opaque-origin sandbox and the restrictive policy.
     "script-src 'unsafe-inline'",
     "style-src 'unsafe-inline'",
     `connect-src ${connectSrc.join(' ')}`,
     `img-src ${imgSrc.join(' ')}`,
     `font-src ${imgSrc.join(' ')}`,
+    `media-src ${imgSrc.join(' ')}`,
     `frame-src ${frameSrc.join(' ')}`,
   ].join('; ');
 }

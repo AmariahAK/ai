@@ -173,8 +173,13 @@ import {
 } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart } from 'ai';
 
+const sandboxUrl = process.env.NEXT_PUBLIC_MCP_APP_SANDBOX_URL;
+if (sandboxUrl == null) {
+  throw new Error('NEXT_PUBLIC_MCP_APP_SANDBOX_URL is required');
+}
+
 const sandbox = {
-  url: '/mcp-app-sandbox',
+  url: sandboxUrl,
   className: 'h-80 w-full rounded-lg border',
   style: { border: 0 },
 } satisfies MCPAppSandboxConfig;
@@ -246,7 +251,7 @@ export default function Chat() {
 
 ## Best Practices
 
-- Treat MCP App HTML as untrusted content. Render it in a sandboxed iframe, ideally through a sandbox proxy route on a separate origin.
+- Treat MCP App HTML as untrusted content. Web hosts must render it through a sandbox proxy on a dedicated origin that has no host cookies, storage, service worker, authenticated routes, or application data.
 - Never pass app-only tools to the model. Use `splitMCPAppTools` and expose only `modelVisible` tools.
 - Validate every iframe request on the server before calling `client.callTool`.
 - Cache app resources by `resourceUri` so repeated tool calls do not refetch identical HTML.
