@@ -1057,7 +1057,16 @@ export async function generateText<
                   continue;
                 }
 
-                if (tool?.onInputAvailable != null) {
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                if (tool.onInputAvailable != null) {
                   await tool.onInputAvailable({
                     input: toolCall.input,
                     toolCallId: toolCall.toolCallId,
