@@ -53,6 +53,10 @@ export type MCPAppSandboxConfig = {
   title?: string;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Expected sandbox proxy origin when it differs from the origin of `url`
+   * after a known redirect. Wildcard and opaque origins are rejected.
+   */
   targetOrigin?: string;
   outerSandbox?: string;
   innerSandbox?: string;

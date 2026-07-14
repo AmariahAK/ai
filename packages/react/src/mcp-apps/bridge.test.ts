@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MCPAppBridge } from './bridge';
 
+const targetOrigin = 'https://proxy.example';
+
 function createTargetWindow() {
   return {
     postMessage: vi.fn(),
@@ -8,7 +10,7 @@ function createTargetWindow() {
 }
 
 function messageEvent(targetWindow: Window, data: unknown): MessageEvent {
-  return { source: targetWindow, data } as MessageEvent;
+  return { source: targetWindow, origin: targetOrigin, data } as MessageEvent;
 }
 
 function originEvent(
@@ -24,6 +26,7 @@ describe('MCPAppBridge', () => {
     const targetWindow = createTargetWindow();
     const bridge = new MCPAppBridge({
       targetWindow,
+      targetOrigin,
       hostInfo: { name: 'test-host', version: '1.0.0' },
       hostContext: { displayMode: 'inline' },
     });
@@ -57,14 +60,14 @@ describe('MCPAppBridge', () => {
             "protocolVersion": "2026-01-26",
           },
         },
-        "*",
+        "https://proxy.example",
       ]
     `);
   });
 
   it('queues tool notifications until the app is initialized', () => {
     const targetWindow = createTargetWindow();
-    const bridge = new MCPAppBridge({ targetWindow });
+    const bridge = new MCPAppBridge({ targetWindow, targetOrigin });
 
     bridge.sendToolInput({ topic: 'usage' });
     expect(targetWindow.postMessage).not.toHaveBeenCalled();
@@ -88,7 +91,7 @@ describe('MCPAppBridge', () => {
               },
             },
           },
-          "*",
+          "https://proxy.example",
         ],
       ]
     `);
@@ -98,6 +101,7 @@ describe('MCPAppBridge', () => {
     const targetWindow = createTargetWindow();
     const bridge = new MCPAppBridge({
       targetWindow,
+      targetOrigin,
       handlers: {
         allowedTools: ['refreshDashboardData'],
         callTool: async params => ({
@@ -135,7 +139,7 @@ describe('MCPAppBridge', () => {
             ],
           },
         },
-        "*",
+        "https://proxy.example",
       ]
     `);
   });
@@ -145,6 +149,7 @@ describe('MCPAppBridge', () => {
     const callTool = vi.fn(async () => ({ content: [] }));
     const bridge = new MCPAppBridge({
       targetWindow,
+      targetOrigin,
       handlers: {
         // no allowedTools => deny-by-default
         callTool,
@@ -178,6 +183,7 @@ describe('MCPAppBridge', () => {
     const callTool = vi.fn(async () => ({ content: [] }));
     const bridge = new MCPAppBridge({
       targetWindow,
+      targetOrigin,
       handlers: {
         allowedTools: ['refreshDashboardData'],
         callTool,
@@ -207,7 +213,7 @@ describe('MCPAppBridge', () => {
     const onError = vi.fn();
     const bridge = new MCPAppBridge({
       targetWindow,
-      targetOrigin: 'https://proxy.example',
+      targetOrigin,
       handlers: { onError },
     });
 
@@ -227,7 +233,7 @@ describe('MCPAppBridge', () => {
     const targetWindow = createTargetWindow();
     const bridge = new MCPAppBridge({
       targetWindow,
-      targetOrigin: 'https://proxy.example',
+      targetOrigin,
     });
 
     bridge.handleMessage(
@@ -250,6 +256,7 @@ describe('MCPAppBridge', () => {
     const targetWindow = createTargetWindow();
     const bridge = new MCPAppBridge({
       targetWindow,
+      targetOrigin,
       handlers: {
         readResource: async p => ({ ok: p }),
         openLink: async p => ({ ok: p }),
@@ -304,5 +311,40 @@ describe('MCPAppBridge', () => {
       mode: 'zoomed',
     });
     expect(modeResponse.error.message).toContain('ui/request-display-mode');
+  });
+
+  it.each(['*', 'data:text/html,test', 'not an origin'])(
+    'rejects a non-concrete target origin: %s',
+    invalidOrigin => {
+      expect(
+        () =>
+          new MCPAppBridge({
+            targetWindow: createTargetWindow(),
+            targetOrigin: invalidOrigin,
+          }),
+      ).toThrow(/targetOrigin/);
+    },
+  );
+
+  it('normalizes the configured target origin', async () => {
+    const targetWindow = createTargetWindow();
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      targetOrigin: 'https://PROXY.example:443/sandbox',
+    });
+
+    bridge.handleMessage(
+      originEvent(targetWindow, targetOrigin, {
+        jsonrpc: '2.0',
+        id: 10,
+        method: 'ui/initialize',
+        params: {},
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+    expect(targetWindow.postMessage.mock.calls[0][1]).toBe(targetOrigin);
   });
 });

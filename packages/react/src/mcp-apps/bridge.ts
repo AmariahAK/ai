@@ -50,6 +50,29 @@ function toError(error: unknown): Error {
 }
 
 /**
+ * Normalizes a postMessage target to a concrete, serialized origin.
+ */
+function normalizeTargetOrigin(targetOrigin: string): string {
+  const value = targetOrigin.trim();
+  if (value === '*') {
+    throw new Error('MCP App targetOrigin must not be "*"');
+  }
+
+  let origin: string;
+  try {
+    origin = new URL(value).origin;
+  } catch {
+    throw new Error(`Invalid MCP App targetOrigin: ${targetOrigin}`);
+  }
+
+  if (origin === 'null') {
+    throw new Error(`MCP App targetOrigin must be concrete: ${targetOrigin}`);
+  }
+
+  return origin;
+}
+
+/**
  * Validates the params for app-initiated `tools/call` requests.
  */
 function assertToolCallParams(params: unknown): MCPAppToolCallParams {
@@ -129,6 +152,7 @@ function assertDisplayModeParams(params: unknown): {
  * ```ts
  * const bridge = new MCPAppBridge({
  *   targetWindow: iframe.contentWindow!,
+ *   targetOrigin: new URL(iframe.src).origin,
  *   handlers: {
  *     allowedTools: ['refreshDashboardData'],
  *     callTool: params => client.callTool(params),
@@ -153,19 +177,19 @@ export class MCPAppBridge {
 
   constructor({
     targetWindow,
-    targetOrigin = '*',
+    targetOrigin,
     handlers = {},
     hostInfo = { name: 'ai-sdk-react', version: '1.0.0' },
     hostContext = { displayMode: 'inline' },
   }: {
     targetWindow: Window;
-    targetOrigin?: string;
+    targetOrigin: string;
     handlers?: MCPAppBridgeHandlers;
     hostInfo?: { name: string; version: string };
     hostContext?: MCPAppHostContext;
   }) {
     this.targetWindow = targetWindow;
-    this.targetOrigin = targetOrigin;
+    this.targetOrigin = normalizeTargetOrigin(targetOrigin);
     this.handlers = handlers;
     this.hostInfo = hostInfo;
     this.hostContext = hostContext;
@@ -202,13 +226,11 @@ export class MCPAppBridge {
 
   /**
    * Whether a `message` event came from the expected proxy window and origin.
-   * The origin check is skipped only when `targetOrigin` is the `'*'` default.
    * Callers that intercept events before {@link handleMessage} share this check.
    */
   acceptsEvent(event: MessageEvent): boolean {
     return (
-      event.source === this.targetWindow &&
-      (this.targetOrigin === '*' || event.origin === this.targetOrigin)
+      event.source === this.targetWindow && event.origin === this.targetOrigin
     );
   }
 

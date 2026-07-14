@@ -177,7 +177,7 @@ export function MessagePart({ part }: { part: unknown }) {
       type: 'string',
       isOptional: true,
       description:
-        'Target origin used for `postMessage`. Defaults to `*`; set this to your sandbox origin in production.',
+        'Expected sandbox proxy origin after a known redirect. By default, the origin is derived from `url`. Wildcard, malformed, and opaque origins are rejected.',
     },
     {
       name: 'outerSandbox',

@@ -10,19 +10,34 @@ import type { MCPAppFrameProps } from './types';
 import { normalizeMCPAppToolResult } from './utils';
 
 /**
- * Derives the concrete origin of the sandbox proxy from its URL, so outbound
- * postMessage targets a specific origin instead of `'*'` and inbound messages
- * can be origin-checked. The proxy must be served from a stable, concrete
- * origin (the default outer sandbox keeps `allow-same-origin`). Falls back to
- * the host origin on a malformed URL, never `'*'`.
+ * Derives a concrete, serialized origin for the sandbox proxy. An explicit
+ * target may account for a known redirect, but wildcard and opaque targets are
+ * rejected so bridge traffic always fails closed.
  */
-function deriveTargetOrigin(url: string): string {
-  const location = typeof window !== 'undefined' ? window.location : undefined;
-  try {
-    return new URL(url, location?.href).origin;
-  } catch {
-    return location?.origin ?? 'null';
+export function deriveTargetOrigin(
+  url: string,
+  configuredOrigin?: string,
+): string {
+  const value = configuredOrigin?.trim() ?? url;
+  if (value === '*') {
+    throw new Error('MCP App sandbox targetOrigin must not be "*"');
   }
+
+  let origin: string;
+  try {
+    origin =
+      configuredOrigin == null
+        ? new URL(value, window.location.href).origin
+        : new URL(value).origin;
+  } catch {
+    throw new Error(`Invalid MCP App sandbox origin: ${value}`);
+  }
+
+  if (origin === 'null') {
+    throw new Error(`MCP App sandbox origin must be concrete: ${value}`);
+  }
+
+  return origin;
 }
 
 function sendToolState({
@@ -67,7 +82,10 @@ export function MCPAppFrame({
   outputRef.current = output;
   hostContextRef.current = hostContext;
   const sandboxUrl = String(sandbox.url);
-  const targetOrigin = sandbox.targetOrigin ?? deriveTargetOrigin(sandboxUrl);
+  const targetOrigin =
+    typeof window === 'undefined'
+      ? undefined
+      : deriveTargetOrigin(sandboxUrl, sandbox.targetOrigin);
   const resourceCSP = getMCPAppCSP(resource.meta?.csp);
   const resourceAllow = getMCPAppAllowAttribute(
     resource.meta?.permissions,
@@ -95,7 +113,7 @@ export function MCPAppFrame({
   useEffect(() => {
     const iframe = iframeRef.current;
     const targetWindow = iframe?.contentWindow;
-    if (targetWindow == null) {
+    if (targetWindow == null || targetOrigin == null) {
       return;
     }
 
