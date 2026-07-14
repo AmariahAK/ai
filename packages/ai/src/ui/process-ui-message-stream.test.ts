@@ -190,6 +190,83 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('coalesces updates for long text and reasoning parts', async () => {
+    const now = vi.spyOn(globalThis.performance, 'now').mockReturnValue(0);
+    const delta = 'x'.repeat(4096);
+    const stream = createUIMessageStream([
+      { type: 'text-start', id: 'text-1' },
+      ...Array.from(
+        { length: 6 },
+        (): UIMessageChunk => ({
+          type: 'text-delta',
+          id: 'text-1',
+          delta,
+        }),
+      ),
+      { type: 'text-end', id: 'text-1' },
+      { type: 'reasoning-start', id: 'reasoning-1' },
+      ...Array.from(
+        { length: 6 },
+        (): UIMessageChunk => ({
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta,
+        }),
+      ),
+      { type: 'reasoning-end', id: 'reasoning-1' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    try {
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    } finally {
+      now.mockRestore();
+    }
+
+    expect({
+      writeCount: writeCalls.length,
+      parts: state.message.parts.map(part => ({
+        type: part.type,
+        textLength:
+          part.type === 'text' || part.type === 'reasoning'
+            ? part.text.length
+            : undefined,
+        state:
+          part.type === 'text' || part.type === 'reasoning'
+            ? part.state
+            : undefined,
+      })),
+    }).toMatchInlineSnapshot(`
+      {
+        "parts": [
+          {
+            "state": "done",
+            "textLength": 24576,
+            "type": "text",
+          },
+          {
+            "state": "done",
+            "textLength": 24576,
+            "type": "reasoning",
+          },
+        ],
+        "writeCount": 10,
+      }
+    `);
+  });
+
   describe('errors', () => {
     let errors: Array<unknown>;
 
