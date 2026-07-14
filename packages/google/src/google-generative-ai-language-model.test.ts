@@ -2,6 +2,7 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
+import { readFileSync } from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
@@ -3451,6 +3452,39 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve image thought signatures from a live stream', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        readFileSync(
+          new URL(
+            './__fixtures__/issue-10660-image-thought-signature.chunks.txt',
+            import.meta.url,
+          ),
+          'utf8',
+        ),
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const events = await convertReadableStreamToArray(stream);
+    const imageEvent = events.find(event => event.type === 'file');
+
+    expect(imageEvent).toStrictEqual({
+      type: 'file',
+      data: 'AA==',
+      mediaType: 'image/jpeg',
+      providerMetadata: {
+        google: {
+          thoughtSignature: 'live-image-thought-signature',
+        },
+      },
+    });
   });
 
   it('should stream text and files in correct order', async () => {
