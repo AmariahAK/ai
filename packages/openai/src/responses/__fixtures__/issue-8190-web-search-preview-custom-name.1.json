@@ -1,0 +1,272 @@
+{
+  "id": "resp_07b4363e64450f18006a5630386b5c81a1a8ea3be255f228f8",
+  "object": "response",
+  "created_at": 1784033336,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784033346,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5-mini-2025-08-07",
+  "moderation": null,
+  "output": [
+    {
+      "id": "ws_07b4363e64450f18006a56303c6bb481a1afe31f4257ad6b0e",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "ai-sdk.dev",
+          "site:ai-sdk.dev"
+        ],
+        "query": "ai-sdk.dev",
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/introduction"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/reference/ai-sdk-ui"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/getting-started"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/ai-sdk-ui/overview"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/ai-sdk-core"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/foundations"
+          },
+          {
+            "type": "url",
+            "url": "https://www.npmjs.com/package/%40ai-sdk/openai"
+          },
+          {
+            "type": "url",
+            "url": "https://www.npmjs.com/package/%40ai-sdk/openai?activeTab=code"
+          },
+          {
+            "type": "url",
+            "url": "https://www.npmjs.com/package/%40ai-sdk/provider"
+          },
+          {
+            "type": "url",
+            "url": "https://www.npmjs.com/package/%40ai-sdk/provider?activeTab=code"
+          },
+          {
+            "type": "url",
+            "url": "https://ai-sdk.dev/docs/introduction?lailu=pc.ciuic.cn"
+          },
+          {
+            "type": "url",
+            "url": "https://www.npmjs.com/package/%40ai-sdk/openai?source=infosec-jobs.com"
+          },
+          {
+            "type": "url",
+            "url": "https://assets.offlinedocs.ai/samples/ai/vercel-ai-sdk/book.pdf"
+          },
+          {
+            "type": "url",
+            "url": "https://www.theseus.fi/bitstream/10024/903063/2/Sarkiniemi_Mikko.pdf"
+          },
+          {
+            "type": "url",
+            "url": "https://dione.lib.unipi.gr/xmlui/bitstream/handle/unipi/18457/Poullakkos_21142.pdf?isAllowed=y&sequence=3"
+          },
+          {
+            "type": "url",
+            "url": "https://leaddev.com/wp-content/uploads/2025/06/Ben-Seymour.pdf"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/learnpython/comments/1ohcxwp"
+          },
+          {
+            "type": "url",
+            "url": "https://ela.kpi.ua/bitstreams/c2033e31-61b6-4dc2-ba06-93a108682451/download"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/LangChain/comments/1fie8ul/confused_between_ai_sdk_and_langchain/"
+          },
+          {
+            "type": "url",
+            "url": "https://arxiv.org/abs/2605.14612"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/nextjs/comments/1my4mbg"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/AIToolsAndTips/comments/1stq4fk/scanning_your_codebase_for_ai_sdk_usage_the_same/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/VercelAISDK/comments/1oh8roq"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/MCPservers/comments/1kab7b0"
+          },
+          {
+            "type": "url",
+            "url": "https://arxiv.org/abs/2204.07560"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/betatests/comments/1ryxahz/aisdkpatternsdev_need_feedback/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/AI_Agents/comments/1nrfm40/quick_noob_evaluation_of_copilotkit_vs_ai_sdk_ui/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/AI_Agents/comments/1q0gzh6/ai_sdk_had_a_50_drop_in_downloads/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/cybersecurity/comments/1u8azpf/15_jetbrains_marketplace_plugins_were_quietly/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/vercel/comments/1r5meu6/claude_agent_sdk_vs_openai_agent_sdk_vs_vercel_ai/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.reddit.com/r/nextjs/comments/1g6jjsy"
+          },
+          {
+            "type": "url",
+            "url": "https://arxiv.org/abs/2101.06098"
+          },
+          {
+            "type": "url",
+            "url": "https://arxiv.org/abs/2003.05037"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ws_07b4363e64450f18006a56303ef0f081a1a47e56908f202a9b",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "open_page",
+        "url": "https://ai-sdk.dev/"
+      }
+    },
+    {
+      "id": "msg_07b4363e64450f18006a563042925881a1889ded9e2d189eee",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "end_index": 42,
+              "start_index": 7,
+              "title": "AI SDK",
+              "url": "https://ai-sdk.dev/"
+            }
+          ],
+          "logprobs": [],
+          "text": "AI SDK ([ai-sdk.dev](https://ai-sdk.dev/))"
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": "current_turn",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 1
+    }
+  },
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_content_types": [
+        "text"
+      ],
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 12733,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 3584
+    },
+    "output_tokens": 684,
+    "output_tokens_details": {
+      "reasoning_tokens": 576
+    },
+    "total_tokens": 13417
+  },
+  "user": null,
+  "metadata": {}
+}

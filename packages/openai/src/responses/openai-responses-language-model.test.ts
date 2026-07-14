@@ -5520,4 +5520,31 @@ describe('OpenAIResponsesLanguageModel', () => {
       result: {},
     });
   });
+
+  it('should preserve a custom web search preview tool name', async () => {
+    prepareJsonFixtureResponse('issue-8190-web-search-preview-custom-name.1');
+
+    const result = await createModel('gpt-5-mini').doGenerate({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'openai.web_search_preview',
+          name: 'webSearch',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [{ type: 'web_search_preview' }],
+    });
+    expect(
+      result.content
+        .filter(
+          part => part.type === 'tool-call' || part.type === 'tool-result',
+        )
+        .map(part => part.toolName),
+    ).toEqual(['webSearch', 'webSearch', 'webSearch', 'webSearch']);
+  });
 });
