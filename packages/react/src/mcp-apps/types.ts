@@ -1,4 +1,5 @@
 import type { MCPAppResource } from '@ai-sdk/mcp';
+import type { JSONObject } from '@ai-sdk/provider';
 import type { DynamicToolUIPart, ToolUIPart, UITools } from 'ai';
 import type { CSSProperties, ReactNode } from 'react';
 import type { MCPAppPermission } from './sandbox';
@@ -25,6 +26,22 @@ export type MCPAppToolCallParams = {
   arguments?: Record<string, unknown>;
 };
 
+export type MCPAppContentBlock = JSONObject & { type: string };
+
+export type MCPAppResourceListParams = {
+  cursor?: string;
+};
+
+export type MCPAppMessageParams = {
+  role: 'user';
+  content: MCPAppContentBlock[];
+};
+
+export type MCPAppUpdateModelContextParams = {
+  content?: MCPAppContentBlock[];
+  structuredContent?: JSONObject;
+};
+
 export type MCPAppBridgeHandlers = {
   /**
    * Tools the MCP App is allowed to invoke via `tools/call`. Deny-by-default:
@@ -34,10 +51,14 @@ export type MCPAppBridgeHandlers = {
   allowedTools?: string[];
   callTool?: (params: MCPAppToolCallParams) => Promise<unknown> | unknown;
   readResource?: (params: { uri: string }) => Promise<unknown> | unknown;
-  listResources?: (params?: unknown) => Promise<unknown> | unknown;
+  listResources?: (
+    params?: MCPAppResourceListParams,
+  ) => Promise<unknown> | unknown;
   openLink?: (params: { url: string }) => Promise<unknown> | unknown;
-  sendMessage?: (params: unknown) => Promise<unknown> | unknown;
-  updateModelContext?: (params: unknown) => Promise<unknown> | unknown;
+  sendMessage?: (params: MCPAppMessageParams) => Promise<unknown> | unknown;
+  updateModelContext?: (
+    params: MCPAppUpdateModelContextParams,
+  ) => Promise<unknown> | unknown;
   requestDisplayMode?: (params: {
     mode: MCPAppDisplayMode;
   }) => Promise<{ mode: MCPAppDisplayMode }> | { mode: MCPAppDisplayMode };

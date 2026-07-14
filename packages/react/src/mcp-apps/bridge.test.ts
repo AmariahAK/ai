@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { MCPAppBridge } from './bridge';
 
 const targetOrigin = 'https://proxy.example';
+const initializeParams = {
+  protocolVersion: '2026-01-26',
+  appInfo: { name: 'test-app', version: '1.0.0' },
+  appCapabilities: {},
+};
 
 function createTargetWindow() {
   return {
@@ -36,7 +41,7 @@ describe('MCPAppBridge', () => {
         jsonrpc: '2.0',
         id: 1,
         method: 'ui/initialize',
-        params: {},
+        params: initializeParams,
       }),
     );
 
@@ -222,7 +227,7 @@ describe('MCPAppBridge', () => {
         jsonrpc: '2.0',
         id: 1,
         method: 'ui/initialize',
-        params: {},
+        params: initializeParams,
       }),
     );
 
@@ -241,7 +246,7 @@ describe('MCPAppBridge', () => {
         jsonrpc: '2.0',
         id: 1,
         method: 'ui/initialize',
-        params: {},
+        params: initializeParams,
       }),
     );
 
@@ -259,7 +264,16 @@ describe('MCPAppBridge', () => {
       targetOrigin,
       handlers: {
         readResource: async p => ({ ok: p }),
+        listResources: async p => ({
+          resources: [
+            { uri: 'ui://app/dashboard', name: 'Dashboard' },
+            { uri: 'file:///etc/passwd', name: 'Private file' },
+          ],
+          nextCursor: p?.cursor,
+        }),
         openLink: async p => ({ ok: p }),
+        sendMessage: async p => ({ ok: p }),
+        updateModelContext: async p => ({ ok: p }),
         requestDisplayMode: p => ({ mode: p.mode }),
       },
     });
@@ -287,6 +301,22 @@ describe('MCPAppBridge', () => {
     expect(response.result).toEqual({ ok: { uri: 'ui://app/data' } });
   });
 
+  it('validates resources/list params and hides non-ui resources', async () => {
+    const response = await requestResult('resources/list', {
+      cursor: 'next-page',
+    });
+    expect(response.result).toEqual({
+      resources: [{ uri: 'ui://app/dashboard', name: 'Dashboard' }],
+      nextCursor: 'next-page',
+    });
+
+    const malformed = await requestResult('resources/list', { cursor: 42 });
+    expect(malformed.error).toMatchObject({
+      code: -32602,
+      message: 'Invalid resources/list params',
+    });
+  });
+
   it('rejects ui/open-link with a javascript: scheme', async () => {
     const response = await requestResult('ui/open-link', {
       // eslint-disable-next-line no-script-url
@@ -303,6 +333,52 @@ describe('MCPAppBridge', () => {
     expect(response.result).toEqual({ ok: { url: 'https://example.com' } });
   });
 
+  it('validates ui/message content before invoking the handler', async () => {
+    const response = await requestResult('ui/message', {
+      role: 'user',
+      content: [{ type: 'text', text: 'Show details' }],
+    });
+    expect(response.result).toEqual({
+      ok: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Show details' }],
+      },
+    });
+
+    for (const params of [
+      { role: 'assistant', content: [] },
+      { role: 'user', content: 'not-an-array' },
+      { role: 'user', content: [{ type: 'text', text: 42 }] },
+    ]) {
+      const malformed = await requestResult('ui/message', params);
+      expect(malformed.error).toMatchObject({
+        code: -32602,
+        message: 'Invalid ui/message params',
+      });
+    }
+  });
+
+  it('validates ui/update-model-context params before invoking the handler', async () => {
+    const response = await requestResult('ui/update-model-context', {
+      content: [{ type: 'text', text: 'Current selection' }],
+      structuredContent: { selectedId: 42 },
+    });
+    expect(response.result).toEqual({
+      ok: {
+        content: [{ type: 'text', text: 'Current selection' }],
+        structuredContent: { selectedId: 42 },
+      },
+    });
+
+    const malformed = await requestResult('ui/update-model-context', {
+      structuredContent: [],
+    });
+    expect(malformed.error).toMatchObject({
+      code: -32602,
+      message: 'Invalid ui/update-model-context params',
+    });
+  });
+
   it('rejects malformed request params', async () => {
     const readResponse = await requestResult('resources/read', { uri: 42 });
     expect(readResponse.error.message).toContain('resources/read');
@@ -311,6 +387,55 @@ describe('MCPAppBridge', () => {
       mode: 'zoomed',
     });
     expect(modeResponse.error.message).toContain('ui/request-display-mode');
+  });
+
+  it('rejects malformed initialization and tool arguments', async () => {
+    const initializeResponse = await requestResult('ui/initialize', {});
+    expect(initializeResponse.error).toMatchObject({
+      code: -32602,
+      message: 'Invalid ui/initialize params',
+    });
+
+    const targetWindow = createTargetWindow();
+    const callTool = vi.fn();
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      targetOrigin,
+      handlers: {
+        allowedTools: ['refreshDashboardData'],
+        callTool,
+      },
+    });
+    bridge.handleMessage(
+      messageEvent(targetWindow, {
+        jsonrpc: '2.0',
+        id: 11,
+        method: 'tools/call',
+        params: { name: 'refreshDashboardData', arguments: [] },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+    expect(callTool).not.toHaveBeenCalled();
+    expect(targetWindow.postMessage.mock.calls[0][0].error).toMatchObject({
+      code: -32602,
+      message: 'Invalid tools/call params',
+    });
+  });
+
+  it('supports ping and rejects malformed ping params', async () => {
+    expect((await requestResult('ping', undefined)).result).toEqual({});
+    expect((await requestResult('ping', [])).error).toMatchObject({
+      code: -32602,
+      message: 'Invalid ping params',
+    });
+  });
+
+  it('returns method-not-found for unsupported methods', async () => {
+    const response = await requestResult('unknown/method', {});
+    expect(response.error.code).toBe(-32601);
   });
 
   it.each(['*', 'data:text/html,test', 'not an origin'])(
@@ -338,7 +463,7 @@ describe('MCPAppBridge', () => {
         jsonrpc: '2.0',
         id: 10,
         method: 'ui/initialize',
-        params: {},
+        params: initializeParams,
       }),
     );
 

@@ -223,9 +223,10 @@ export function MessagePart({ part }: { part: unknown }) {
     },
     {
       name: 'listResources',
-      type: '(params?: unknown) => Promise<unknown> | unknown',
+      type: '(params?: { cursor?: string }) => Promise<unknown> | unknown',
       isOptional: true,
-      description: 'Handles app-initiated `resources/list` requests.',
+      description:
+        'Handles app-initiated `resources/list` requests. Results are filtered to `ui://` resources before they reach the app.',
     },
     {
       name: 'openLink',
@@ -235,13 +236,13 @@ export function MessagePart({ part }: { part: unknown }) {
     },
     {
       name: 'sendMessage',
-      type: '(params: unknown) => Promise<unknown> | unknown',
+      type: "(params: { role: 'user'; content: MCPAppContentBlock[] }) => Promise<unknown> | unknown",
       isOptional: true,
       description: 'Handles app-initiated `ui/message` requests.',
     },
     {
       name: 'updateModelContext',
-      type: '(params: unknown) => Promise<unknown> | unknown',
+      type: '(params: { content?: MCPAppContentBlock[]; structuredContent?: JSONObject }) => Promise<unknown> | unknown',
       isOptional: true,
       description: 'Handles app-initiated `ui/update-model-context` requests.',
     },

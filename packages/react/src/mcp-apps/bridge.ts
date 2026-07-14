@@ -1,12 +1,16 @@
-import { isJSONObject } from '@ai-sdk/provider';
+import { isJSONObject, type JSONObject } from '@ai-sdk/provider';
 import type {
   MCPAppBridgeHandlers,
+  MCPAppContentBlock,
   MCPAppHostContext,
   MCPAppJsonRpcMessage,
   MCPAppJsonRpcNotification,
   MCPAppJsonRpcRequest,
   MCPAppJsonRpcResponse,
+  MCPAppMessageParams,
+  MCPAppResourceListParams,
   MCPAppToolCallParams,
+  MCPAppUpdateModelContextParams,
 } from './types';
 
 const MCP_APP_PROTOCOL_VERSION = '2026-01-26';
@@ -72,17 +76,76 @@ function normalizeTargetOrigin(targetOrigin: string): string {
   return origin;
 }
 
+class MCPAppRpcError extends Error {
+  constructor(
+    readonly code: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function invalidParams(method: string): never {
+  throw new MCPAppRpcError(-32602, `Invalid ${method} params`);
+}
+
+function methodUnavailable(method: string): never {
+  throw new MCPAppRpcError(-32601, `MCP App method unavailable: ${method}`);
+}
+
+function policyDenied(message: string): never {
+  throw new MCPAppRpcError(-32000, message);
+}
+
+function isRecord(value: unknown): value is JSONObject {
+  return isJSONObject(value) && !Array.isArray(value);
+}
+
+function assertInitializeParams(params: unknown): void {
+  if (
+    !isRecord(params) ||
+    typeof params.protocolVersion !== 'string' ||
+    !isRecord(params.appInfo) ||
+    typeof params.appInfo.name !== 'string' ||
+    typeof params.appInfo.version !== 'string' ||
+    !isRecord(params.appCapabilities)
+  ) {
+    invalidParams('ui/initialize');
+  }
+
+  const { appCapabilities } = params;
+  if (
+    (appCapabilities.experimental !== undefined &&
+      !isRecord(appCapabilities.experimental)) ||
+    (appCapabilities.tools !== undefined &&
+      (!isRecord(appCapabilities.tools) ||
+        (appCapabilities.tools.listChanged !== undefined &&
+          typeof appCapabilities.tools.listChanged !== 'boolean'))) ||
+    (appCapabilities.availableDisplayModes !== undefined &&
+      (!Array.isArray(appCapabilities.availableDisplayModes) ||
+        appCapabilities.availableDisplayModes.some(
+          mode => mode !== 'inline' && mode !== 'fullscreen' && mode !== 'pip',
+        )))
+  ) {
+    invalidParams('ui/initialize');
+  }
+}
+
 /**
  * Validates the params for app-initiated `tools/call` requests.
  */
 function assertToolCallParams(params: unknown): MCPAppToolCallParams {
-  if (!isJSONObject(params) || typeof params.name !== 'string') {
-    throw new Error('Invalid tools/call params');
+  if (
+    !isRecord(params) ||
+    typeof params.name !== 'string' ||
+    (params.arguments !== undefined && !isRecord(params.arguments))
+  ) {
+    invalidParams('tools/call');
   }
 
   return {
     name: params.name,
-    arguments: isJSONObject(params.arguments) ? params.arguments : undefined,
+    arguments: params.arguments,
   };
 }
 
@@ -90,15 +153,43 @@ function assertToolCallParams(params: unknown): MCPAppToolCallParams {
  * Validates `resources/read` params and limits reads to `ui://` app resources.
  */
 function assertResourceReadParams(params: unknown): { uri: string } {
-  if (!isJSONObject(params) || typeof params.uri !== 'string') {
-    throw new Error('Invalid resources/read params');
+  if (!isRecord(params) || typeof params.uri !== 'string') {
+    invalidParams('resources/read');
   }
   if (!params.uri.startsWith('ui://')) {
-    throw new Error(
-      `resources/read is limited to ui:// resources: ${params.uri}`,
-    );
+    policyDenied('resources/read is limited to ui:// resources');
   }
   return { uri: params.uri };
+}
+
+function assertResourceListParams(
+  params: unknown,
+): MCPAppResourceListParams | undefined {
+  if (params === undefined) {
+    return undefined;
+  }
+  if (
+    !isRecord(params) ||
+    (params.cursor !== undefined && typeof params.cursor !== 'string')
+  ) {
+    invalidParams('resources/list');
+  }
+  return params.cursor === undefined ? {} : { cursor: params.cursor };
+}
+
+function filterResourceListResult(result: unknown): Record<string, unknown> {
+  if (!isRecord(result) || !Array.isArray(result.resources)) {
+    throw new Error('Invalid resources/list handler result');
+  }
+
+  const resources = result.resources.filter(
+    resource =>
+      isRecord(resource) &&
+      typeof resource.uri === 'string' &&
+      resource.uri.startsWith('ui://'),
+  );
+
+  return { ...result, resources };
 }
 
 /**
@@ -106,22 +197,107 @@ function assertResourceReadParams(params: unknown): { uri: string } {
  * URLs.
  */
 function assertOpenLinkParams(params: unknown): { url: string } {
-  if (!isJSONObject(params) || typeof params.url !== 'string') {
-    throw new Error('Invalid ui/open-link params');
+  if (!isRecord(params) || typeof params.url !== 'string') {
+    invalidParams('ui/open-link');
   }
 
   let scheme: string;
   try {
     scheme = new URL(params.url).protocol;
   } catch {
-    throw new Error(`Invalid ui/open-link url: ${params.url}`);
+    invalidParams('ui/open-link');
   }
 
   if (scheme !== 'https:' && scheme !== 'http:' && scheme !== 'mailto:') {
-    throw new Error(`Disallowed ui/open-link scheme: ${scheme}`);
+    policyDenied('ui/open-link URL scheme is not allowed');
   }
 
   return { url: params.url };
+}
+
+function assertContentBlocks(
+  value: unknown,
+  method: string,
+): MCPAppContentBlock[] {
+  if (!Array.isArray(value)) {
+    invalidParams(method);
+  }
+
+  for (const block of value) {
+    if (!isRecord(block) || typeof block.type !== 'string') {
+      invalidParams(method);
+    }
+
+    switch (block.type) {
+      case 'text':
+        if (typeof block.text !== 'string') invalidParams(method);
+        break;
+      case 'image':
+      case 'audio':
+        if (
+          typeof block.data !== 'string' ||
+          typeof block.mimeType !== 'string'
+        ) {
+          invalidParams(method);
+        }
+        break;
+      case 'resource':
+        if (
+          !isRecord(block.resource) ||
+          typeof block.resource.uri !== 'string' ||
+          (typeof block.resource.text !== 'string' &&
+            typeof block.resource.blob !== 'string')
+        ) {
+          invalidParams(method);
+        }
+        break;
+      case 'resource_link':
+        if (typeof block.uri !== 'string' || typeof block.name !== 'string') {
+          invalidParams(method);
+        }
+        break;
+      default:
+        invalidParams(method);
+    }
+  }
+
+  return value as MCPAppContentBlock[];
+}
+
+function assertMessageParams(params: unknown): MCPAppMessageParams {
+  if (!isRecord(params) || params.role !== 'user') {
+    invalidParams('ui/message');
+  }
+  return {
+    role: 'user',
+    content: assertContentBlocks(params.content, 'ui/message'),
+  };
+}
+
+function assertUpdateModelContextParams(
+  params: unknown,
+): MCPAppUpdateModelContextParams {
+  if (
+    !isRecord(params) ||
+    (params.structuredContent !== undefined &&
+      !isRecord(params.structuredContent))
+  ) {
+    invalidParams('ui/update-model-context');
+  }
+
+  return {
+    ...(params.content === undefined
+      ? {}
+      : {
+          content: assertContentBlocks(
+            params.content,
+            'ui/update-model-context',
+          ),
+        }),
+    ...(params.structuredContent === undefined
+      ? {}
+      : { structuredContent: params.structuredContent }),
+  };
 }
 
 /**
@@ -131,12 +307,12 @@ function assertDisplayModeParams(params: unknown): {
   mode: 'inline' | 'fullscreen' | 'pip';
 } {
   if (
-    !isJSONObject(params) ||
+    !isRecord(params) ||
     (params.mode !== 'inline' &&
       params.mode !== 'fullscreen' &&
       params.mode !== 'pip')
   ) {
-    throw new Error('Invalid ui/request-display-mode params');
+    invalidParams('ui/request-display-mode');
   }
   return { mode: params.mode };
 }
@@ -349,7 +525,13 @@ export class MCPAppBridge {
       this.post({
         jsonrpc: '2.0',
         id: request.id,
-        error: { code: -32603, message: normalizedError.message },
+        error: {
+          code:
+            normalizedError instanceof MCPAppRpcError
+              ? normalizedError.code
+              : -32603,
+          message: normalizedError.message,
+        },
       });
     }
   }
@@ -361,7 +543,8 @@ export class MCPAppBridge {
     request: MCPAppJsonRpcRequest,
   ): Promise<unknown> {
     switch (request.method) {
-      case 'ui/initialize':
+      case 'ui/initialize': {
+        assertInitializeParams(request.params);
         return {
           protocolVersion: MCP_APP_PROTOCOL_VERSION,
           hostCapabilities: {
@@ -374,10 +557,17 @@ export class MCPAppBridge {
           hostInfo: this.hostInfo,
           hostContext: this.hostContext,
         };
+      }
+
+      case 'ping':
+        if (request.params !== undefined && !isRecord(request.params)) {
+          invalidParams('ping');
+        }
+        return {};
 
       case 'tools/call': {
         if (this.handlers.callTool == null) {
-          throw new Error('No tools/call handler configured');
+          methodUnavailable('tools/call');
         }
         const params = assertToolCallParams(request.params);
         // Deny-by-default: the (untrusted) MCP App may only invoke tools the
@@ -387,46 +577,61 @@ export class MCPAppBridge {
           this.handlers.allowedTools == null ||
           !this.handlers.allowedTools.includes(params.name)
         ) {
-          throw new Error(`Tool is not app-visible: ${params.name}`);
+          policyDenied('Tool is not app-visible');
         }
         return this.handlers.callTool(params);
       }
 
       case 'resources/read':
         if (this.handlers.readResource == null) {
-          throw new Error('No resources/read handler configured');
+          methodUnavailable('resources/read');
         }
         return this.handlers.readResource(
           assertResourceReadParams(request.params),
         );
 
-      case 'resources/list':
+      case 'resources/list': {
         if (this.handlers.listResources == null) {
-          throw new Error('No resources/list handler configured');
+          methodUnavailable('resources/list');
         }
-        return this.handlers.listResources(request.params);
+        return filterResourceListResult(
+          await this.handlers.listResources(
+            assertResourceListParams(request.params),
+          ),
+        );
+      }
 
       case 'ui/open-link':
         if (this.handlers.openLink == null) {
-          throw new Error('No ui/open-link handler configured');
+          methodUnavailable('ui/open-link');
         }
         return this.handlers.openLink(assertOpenLinkParams(request.params));
 
       case 'ui/message':
-        return this.handlers.sendMessage?.(request.params) ?? {};
+        if (this.handlers.sendMessage == null) {
+          methodUnavailable('ui/message');
+        }
+        return this.handlers.sendMessage(assertMessageParams(request.params));
 
       case 'ui/update-model-context':
-        return this.handlers.updateModelContext?.(request.params) ?? {};
-
-      case 'ui/request-display-mode':
-        return (
-          this.handlers.requestDisplayMode?.(
-            assertDisplayModeParams(request.params),
-          ) ?? { mode: this.hostContext.displayMode ?? 'inline' }
+        if (this.handlers.updateModelContext == null) {
+          methodUnavailable('ui/update-model-context');
+        }
+        return this.handlers.updateModelContext(
+          assertUpdateModelContextParams(request.params),
         );
 
+      case 'ui/request-display-mode': {
+        const params = assertDisplayModeParams(request.params);
+        return (
+          this.handlers.requestDisplayMode?.(params) ?? {
+            mode: this.hostContext.displayMode ?? 'inline',
+          }
+        );
+      }
+
       default:
-        throw new Error(`Unsupported MCP App method: ${request.method}`);
+        methodUnavailable(request.method);
     }
   }
 
