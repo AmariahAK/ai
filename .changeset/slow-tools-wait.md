@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Ensure `smoothStream` emits preceding assistant text before executing tool calls.
+Ensure `smoothStream` emits all assistant text from a model call before executing its local tools.

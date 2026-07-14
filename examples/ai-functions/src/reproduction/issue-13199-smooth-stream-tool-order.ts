@@ -8,7 +8,7 @@ async function main() {
   let textObservedWhenToolExecuted: string | undefined;
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-4o'),
     prompt:
       'You must complete these actions in order: ' +
       '(1) output exactly "I will read hello.txt now. " including the trailing space, ' +

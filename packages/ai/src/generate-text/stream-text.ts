@@ -72,7 +72,6 @@ import {
 import type { Callback } from '../util/callback';
 import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
-import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { getOwn } from '../util/get-own';
@@ -126,7 +125,7 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
-import { isSmoothStreamTransform } from './smooth-stream';
+import { getSmoothStreamTransformId } from './smooth-stream';
 import { streamLanguageModelCall } from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
@@ -146,6 +145,10 @@ import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
+import {
+  createToolExecutionBarrier,
+  type ToolExecutionBarrier,
+} from './tool-execution-barrier';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
@@ -1443,49 +1446,18 @@ class DefaultStreamTextResult<
 
     // smoothStream can otherwise delay visible text while upstream tool
     // execution continues and overtakes it.
-    const delayToolExecution = transforms.some(isSmoothStreamTransform);
-    let availableToolExecutionBarriers = 0;
-    let toolExecutionBarriersReleased = false;
-    const pendingToolExecutionBarriers: Array<
-      ReturnType<typeof createResolvablePromise<void>>
-    > = [];
-
-    function waitForToolExecution() {
-      if (toolExecutionBarriersReleased) {
-        return Promise.resolve();
-      }
-
-      if (availableToolExecutionBarriers > 0) {
-        availableToolExecutionBarriers--;
-        return Promise.resolve();
-      }
-
-      const barrier = createResolvablePromise<void>();
-      pendingToolExecutionBarriers.push(barrier);
-      return barrier.promise;
-    }
-
-    function notifyToolCallEmitted() {
-      const barrier = pendingToolExecutionBarriers.shift();
-
-      if (barrier != null) {
-        barrier.resolve();
-      } else {
-        availableToolExecutionBarriers++;
-      }
-    }
+    const smoothStreamId = transforms
+      .map(getSmoothStreamTransformId)
+      .filter((id): id is symbol => id != null)
+      .at(-1);
+    const activeToolExecutionBarriers = new Set<ToolExecutionBarrier>();
 
     function releaseToolExecutionBarriers() {
-      toolExecutionBarriersReleased = true;
-
-      for (const barrier of pendingToolExecutionBarriers.splice(0)) {
-        barrier.resolve();
+      for (const barrier of activeToolExecutionBarriers) {
+        barrier.release();
       }
+      activeToolExecutionBarriers.clear();
     }
-
-    abortSignal?.addEventListener('abort', releaseToolExecutionBarriers, {
-      once: true,
-    });
 
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
@@ -1498,6 +1470,7 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
+          releaseToolExecutionBarriers();
           await notify({
             event: {
               callId,
@@ -1544,6 +1517,7 @@ class DefaultStreamTextResult<
       },
 
       cancel(reason) {
+        releaseToolExecutionBarriers();
         return stitchableStream.stream.cancel(reason);
       },
     });
@@ -1571,30 +1545,6 @@ class DefaultStreamTextResult<
             stitchableStream.terminate();
             isRunning = false;
             releaseToolExecutionBarriers();
-          },
-        }),
-      );
-    }
-
-    if (delayToolExecution) {
-      let hasEmittedToolCallForStep = false;
-
-      // Release tool execution only after the transformed tool call reaches
-      // the output stream, which guarantees preceding smoothed text was emitted.
-      stream = stream.pipeThrough(
-        new TransformStream({
-          transform(chunk, controller) {
-            controller.enqueue(chunk);
-
-            if (chunk.type === 'start-step') {
-              hasEmittedToolCallForStep = false;
-            } else if (
-              chunk.type === 'tool-call' &&
-              !hasEmittedToolCallForStep
-            ) {
-              hasEmittedToolCallForStep = true;
-              notifyToolCallEmitted();
-            }
           },
         }),
       );
@@ -2045,6 +1995,17 @@ class DefaultStreamTextResult<
                     telemetryDispatcher.runInTracingChannelSpan!(options),
                   );
 
+          let toolExecutionBarrier: ToolExecutionBarrier | undefined;
+          if (smoothStreamId != null) {
+            toolExecutionBarrier = createToolExecutionBarrier({
+              smoothStreamId,
+              onSettled() {
+                activeToolExecutionBarriers.delete(toolExecutionBarrier!);
+              },
+            });
+            activeToolExecutionBarriers.add(toolExecutionBarrier);
+          }
+
           const streamWithToolResults = executeToolsFromStream({
             stream: streamAfterToolCallbackInvocation,
             tools,
@@ -2072,9 +2033,10 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
-            waitForToolExecution: delayToolExecution
-              ? waitForToolExecution
-              : undefined,
+            waitForToolExecution:
+              toolExecutionBarrier == null
+                ? undefined
+                : () => toolExecutionBarrier.wait(abortSignal),
           });
 
           // Conditionally include request.body based on include settings.
@@ -2171,12 +2133,19 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request': {
+                      if (
+                        chunk.type === 'reasoning-delta' &&
+                        chunk.text.length > 0
+                      ) {
+                        toolExecutionBarrier?.register(chunk);
+                      }
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
+                        toolExecutionBarrier?.register(chunk);
                         controller.enqueue(chunk);
                       }
                       break;
@@ -2226,6 +2195,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'model-call-end': {
+                      toolExecutionBarrier?.seal();
                       hasReceivedTerminalChunk = true;
 
                       // Note: tool executions might not be finished yet when the finish event is emitted.
@@ -2240,6 +2210,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'error': {
+                      toolExecutionBarrier?.release();
                       hasReceivedTerminalChunk = true;
                       controller.enqueue(chunk);
                       stepFinishReason = 'error';

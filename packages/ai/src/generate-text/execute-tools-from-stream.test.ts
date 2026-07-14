@@ -84,6 +84,7 @@ describe('executeToolsFromStream', () => {
         },
         finishChunk,
       ]);
+    const waitForToolExecution = vi.fn(async () => {});
 
     const transformedStream = executeToolsFromStream({
       stream: inputStream,
@@ -95,6 +96,7 @@ describe('executeToolsFromStream', () => {
       abortSignal: undefined,
       toolsContext: {},
       runtimeContext: {},
+      waitForToolExecution,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -153,6 +155,7 @@ describe('executeToolsFromStream', () => {
           },
         ]
       `);
+    expect(waitForToolExecution).toHaveBeenCalledOnce();
   });
 
   it('should handle sync tool execution', async () => {
@@ -307,6 +310,7 @@ describe('executeToolsFromStream', () => {
     };
 
     let toolExecuted = false;
+    const waitForToolExecution = vi.fn(async () => {});
 
     const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
@@ -338,11 +342,13 @@ describe('executeToolsFromStream', () => {
       timeout: undefined,
       toolsContext: {},
       runtimeContext: {},
+      waitForToolExecution,
     });
 
     await convertReadableStreamToArray(transformedStream);
 
     expect(toolExecuted).toBe(false);
+    expect(waitForToolExecution).not.toHaveBeenCalled();
   });
 
   it('should emit approval request and approved response before executing auto-approved tools', async () => {
@@ -885,6 +891,7 @@ describe('executeToolsFromStream', () => {
       const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
         [];
       const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
+      const waitForToolExecution = vi.fn(async () => {});
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -913,12 +920,14 @@ describe('executeToolsFromStream', () => {
         onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
+        waitForToolExecution,
       });
 
       await convertReadableStreamToArray(transformedStream);
 
       expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
       expect(toolExecutionEndEvents).toMatchInlineSnapshot(`[]`);
+      expect(waitForToolExecution).not.toHaveBeenCalled();
     });
 
     it('should call callbacks for each tool in a multi-tool stream', async () => {

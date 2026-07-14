@@ -4,19 +4,25 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import type { TextStreamPart } from './stream-text-result';
+import {
+  completeToolExecutionBarrierChunks,
+  releaseToolExecutionBarriersForChunk,
+} from './tool-execution-barrier';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,
   line: /\n+/m,
 };
 
-const smoothStreamTransforms = new WeakSet<object>();
+const smoothStreamTransforms = new WeakMap<object, symbol>();
 
 /**
  * Internal marker used to coordinate tool execution with smoothed output.
  */
-export function isSmoothStreamTransform(transform: object): boolean {
-  return smoothStreamTransforms.has(transform);
+export function getSmoothStreamTransformId(
+  transform: object,
+): symbol | undefined {
+  return smoothStreamTransforms.get(transform);
 }
 
 /**
@@ -52,6 +58,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
+  const smoothStreamId = Symbol('smoothStream');
   let detectChunk: ChunkDetector;
 
   // Check if chunking is an Intl.Segmenter (duck-typing for segment method)
@@ -119,58 +126,90 @@ export function smoothStream<TOOLS extends ToolSet>({
     let id = '';
     let type: 'text-delta' | 'reasoning-delta' | undefined = undefined;
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    let bufferedInputChunks: object[] = [];
+    let lastOutputChunk: object | undefined;
+
+    function completeBufferedInputChunks() {
+      completeToolExecutionBarrierChunks({
+        inputChunks: bufferedInputChunks,
+        outputChunk: lastOutputChunk,
+        smoothStreamId,
+      });
+      bufferedInputChunks = [];
+      lastOutputChunk = undefined;
+    }
 
     function flushBuffer(
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
       if (buffer.length > 0 && type !== undefined) {
-        controller.enqueue({
+        const outputChunk = {
           type,
           text: buffer,
           id,
           ...(providerMetadata != null ? { providerMetadata } : {}),
-        });
+        } as TextStreamPart<TOOLS>;
+        controller.enqueue(outputChunk);
+        lastOutputChunk = outputChunk;
         buffer = '';
         providerMetadata = undefined;
       }
+
+      completeBufferedInputChunks();
     }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        // Handle non-smoothable chunks: flush buffer and pass through
-        if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
-          flushBuffer(controller);
-          controller.enqueue(chunk);
-          return;
-        }
+        try {
+          // Handle non-smoothable chunks: flush buffer and pass through
+          if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
+            flushBuffer(controller);
+            controller.enqueue(chunk);
+            return;
+          }
 
-        // Flush buffer when type or id changes
-        if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
-          flushBuffer(controller);
-        }
+          // Flush buffer when type or id changes
+          if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
+            flushBuffer(controller);
+          }
 
-        buffer += chunk.text;
-        id = chunk.id;
-        type = chunk.type;
+          bufferedInputChunks.push(chunk);
+          buffer += chunk.text;
+          id = chunk.id;
+          type = chunk.type;
 
-        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
-        if (chunk.providerMetadata != null) {
-          providerMetadata = chunk.providerMetadata;
-        }
+          // Preserve providerMetadata (e.g., Anthropic thinking signatures)
+          if (chunk.providerMetadata != null) {
+            providerMetadata = chunk.providerMetadata;
+          }
 
-        let match;
+          let match;
 
-        while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
-          buffer = buffer.slice(match.length);
+          while ((match = detectChunk(buffer)) != null) {
+            const outputChunk = { type, text: match, id };
+            controller.enqueue(outputChunk);
+            lastOutputChunk = outputChunk;
+            buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+            await delay(delayInMs);
+          }
+
+          if (buffer.length === 0) {
+            completeBufferedInputChunks();
+          }
+        } catch (error) {
+          for (const bufferedChunk of bufferedInputChunks) {
+            releaseToolExecutionBarriersForChunk(bufferedChunk);
+          }
+          bufferedInputChunks = [];
+          releaseToolExecutionBarriersForChunk(chunk);
+          throw error;
         }
       },
     });
   };
 
-  smoothStreamTransforms.add(transform);
+  smoothStreamTransforms.set(transform, smoothStreamId);
 
   return transform;
 }
