@@ -395,7 +395,8 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH;
     } = {},
   ) {
     server.urls[url].response = {
@@ -1213,6 +1214,46 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should accept lowercase JSON Schema types in responseSchema (issue #7689)', async () => {
+    prepareJsonFixtureResponse('google-response-schema-7689', {
+      url: TEST_URL_GEMINI_2_5_FLASH,
+    });
+
+    const result = await provider.languageModel('gemini-2.5-flash').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+          required: ['location'],
+        },
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return the location "Paris".' }],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            location: { type: 'string' },
+          },
+          required: ['location'],
+        },
+      },
+    });
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: '{"location": "Paris"}',
+    });
   });
 
   it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
