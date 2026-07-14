@@ -1,0 +1,173 @@
+{
+  "id": "resp_0dca2d629804d20d006a5656a5e09c819ca1401a6633e2c95c",
+  "object": "response",
+  "created_at": 1784043173,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784043177,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-4o-mini-2024-07-18",
+  "moderation": null,
+  "output": [
+    {
+      "id": "ws_0dca2d629804d20d006a5656a7c3c4819c90beec6e11d8c5c9",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": ["OpenAI API documentation homepage title"],
+        "query": "OpenAI API documentation homepage title",
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/index/openai-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/introduction?lang=node.js&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/quickstart/make-your-first-api-request?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models/all?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/models/object?lang=curl&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?src_trk=em662f12e8ce7730.67771400510222362&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://public-api.org/api/1665/openai?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-responses-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-models-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai-apis/openai-assistants-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai-apis/openai-completions-api/?utm_source=openai"
+          }
+        ]
+      }
+    },
+    {
+      "id": "msg_0dca2d629804d20d006a5656a88f1c819ca76b8db822228e04",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "end_index": 144,
+              "start_index": 87,
+              "title": "API Platform | OpenAI",
+              "url": "https://openai.com/api/?utm_source=openai"
+            }
+          ],
+          "logprobs": [],
+          "text": "The current title of the OpenAI API documentation homepage is \"API Platform | OpenAI.\" ([openai.com](https://openai.com/api/?utm_source=openai)) "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": null,
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 1
+    }
+  },
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_content_types": ["text"],
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 317,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 54,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 371
+  },
+  "user": null,
+  "metadata": {}
+}
