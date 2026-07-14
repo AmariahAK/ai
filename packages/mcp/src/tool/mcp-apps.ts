@@ -1,6 +1,5 @@
 import { isJSONObject, type JSONObject } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import type { MCPClient } from './mcp-client';
 import type {
   ClientCapabilities,
@@ -59,12 +58,23 @@ export type MCPAppResourceCSP = {
 };
 
 /**
+ * Browser capabilities requested by an MCP App resource.
+ */
+export type MCPAppResourcePermissions = {
+  camera?: Record<string, never>;
+  microphone?: Record<string, never>;
+  geolocation?: Record<string, never>;
+  clipboardWrite?: Record<string, never>;
+  [key: string]: unknown;
+};
+
+/**
  * Host rendering metadata from an MCP App resource.
  */
 export type MCPAppResourceMeta = {
   prefersBorder?: boolean;
   csp?: MCPAppResourceCSP;
-  permissions?: Record<string, unknown>;
+  permissions?: MCPAppResourcePermissions;
   [key: string]: unknown;
 };
 
@@ -85,45 +95,94 @@ type MCPAppToolLike = {
 
 function getToolUiMeta(meta?: ToolMeta): JSONObject | undefined {
   const uiMeta = meta?.ui;
-  return isJSONObject(uiMeta) ? uiMeta : undefined;
+  return isRecord(uiMeta) ? uiMeta : undefined;
 }
 
-/**
- * Filters a string array to its string elements, dropping the field entirely
- * (rather than failing the parse) if the value is not an array.
- */
-const optionalStringArray = z
-  .array(z.unknown())
-  .transform(items => items.filter((v): v is string => typeof v === 'string'))
-  .optional()
-  .catch(undefined);
+function isRecord(value: unknown): value is JSONObject {
+  return isJSONObject(value) && !Array.isArray(value);
+}
 
-const MCPAppResourceCSPSchema = z.looseObject({
-  connectDomains: optionalStringArray,
-  resourceDomains: optionalStringArray,
-  frameDomains: optionalStringArray,
-});
+function hasOwn(record: JSONObject, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
 
-/**
- * Runtime schema for `_meta.ui` on an MCP App resource. Each known field is
- * validated; a malformed field is dropped (`.catch(undefined)`) rather than
- * failing the whole parse, and unknown keys pass through for forward-compat.
- */
-const MCPAppResourceMetaSchema = z.looseObject({
-  prefersBorder: z.boolean().optional().catch(undefined),
-  csp: MCPAppResourceCSPSchema.optional().catch(undefined),
-  permissions: z.record(z.string(), z.unknown()).optional().catch(undefined),
-});
+const CSP_DOMAIN_KEYS = [
+  'connectDomains',
+  'resourceDomains',
+  'frameDomains',
+] as const;
 
-function getResourceUiMeta(meta: unknown): MCPAppResourceMeta | undefined {
-  const resourceMeta = isJSONObject(meta) ? meta : undefined;
-  const rawUiMeta = resourceMeta?.ui;
-  if (!isJSONObject(rawUiMeta)) {
+function parseResourceCSP(value: unknown): MCPAppResourceCSP | undefined {
+  if (!isRecord(value)) {
     return undefined;
   }
 
-  const parsed = MCPAppResourceMetaSchema.safeParse(rawUiMeta);
-  return parsed.success ? (parsed.data as MCPAppResourceMeta) : undefined;
+  const result: MCPAppResourceCSP = { ...value };
+  for (const key of CSP_DOMAIN_KEYS) {
+    if (hasOwn(value, key)) {
+      const domains = value[key];
+      result[key] = Array.isArray(domains)
+        ? domains.filter(
+            (domain): domain is string => typeof domain === 'string',
+          )
+        : undefined;
+    }
+  }
+  return result;
+}
+
+const PERMISSION_KEYS = [
+  'camera',
+  'microphone',
+  'geolocation',
+  'clipboardWrite',
+] as const;
+
+function parseResourcePermissions(
+  value: unknown,
+): MCPAppResourcePermissions | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const result: MCPAppResourcePermissions = { ...value };
+  for (const key of PERMISSION_KEYS) {
+    if (hasOwn(value, key)) {
+      // Permission markers are empty objects in the protocol. Normalize valid
+      // objects and reject scalar/array lookalikes without dropping future keys.
+      result[key] = isRecord(value[key]) ? {} : undefined;
+    }
+  }
+  return result;
+}
+
+/**
+ * Runtime parser for `_meta.ui` on an MCP App resource. Each known field is
+ * validated independently, malformed fields are dropped rather than failing
+ * the whole resource, and unknown keys pass through for forward compatibility.
+ * This stays dependency-free because the helpers are on a common import path.
+ */
+function getResourceUiMeta(meta: unknown): MCPAppResourceMeta | undefined {
+  const resourceMeta = isRecord(meta) ? meta : undefined;
+  const rawUiMeta = resourceMeta?.ui;
+  if (!isRecord(rawUiMeta)) {
+    return undefined;
+  }
+
+  const result: MCPAppResourceMeta = { ...rawUiMeta };
+  if (hasOwn(rawUiMeta, 'prefersBorder')) {
+    result.prefersBorder =
+      typeof rawUiMeta.prefersBorder === 'boolean'
+        ? rawUiMeta.prefersBorder
+        : undefined;
+  }
+  if (hasOwn(rawUiMeta, 'csp')) {
+    result.csp = parseResourceCSP(rawUiMeta.csp);
+  }
+  if (hasOwn(rawUiMeta, 'permissions')) {
+    result.permissions = parseResourcePermissions(rawUiMeta.permissions);
+  }
+  return result;
 }
 
 function parseVisibility(value: unknown): MCPAppToolVisibility[] | undefined {

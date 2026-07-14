@@ -229,6 +229,58 @@ describe('MCP Apps helpers', () => {
     `);
   });
 
+  it('normalizes valid permission markers and rejects malformed ones', () => {
+    const resource = getMCPAppResourceFromReadResult({
+      uri: 'ui://ai-sdk-e2e/dashboard',
+      resource: {
+        contents: [
+          {
+            uri: 'ui://ai-sdk-e2e/dashboard',
+            mimeType: MCP_APP_MIME_TYPE,
+            text: '<!doctype html>',
+            _meta: {
+              ui: {
+                permissions: {
+                  camera: { ignored: true },
+                  microphone: true,
+                  geolocation: [],
+                  clipboardWrite: {},
+                  futurePermission: { mode: 'read' },
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(resource.meta?.permissions).toEqual({
+      camera: {},
+      microphone: undefined,
+      geolocation: undefined,
+      clipboardWrite: {},
+      futurePermission: { mode: 'read' },
+    });
+  });
+
+  it('rejects array-shaped resource metadata objects', () => {
+    const resource = getMCPAppResourceFromReadResult({
+      uri: 'ui://ai-sdk-e2e/dashboard',
+      resource: {
+        contents: [
+          {
+            uri: 'ui://ai-sdk-e2e/dashboard',
+            mimeType: MCP_APP_MIME_TYPE,
+            text: '<!doctype html>',
+            _meta: { ui: [] },
+          },
+        ],
+      },
+    });
+
+    expect(resource.meta).toBeUndefined();
+  });
+
   it('calls app-visible tools through the MCP client', async () => {
     client = await createMCPClient({
       transport: new MockMCPTransport({

@@ -1,8 +1,6 @@
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import type { MCPAppResource } from './mcp-apps';
 
-const encoder = new TextEncoder();
-
 // canonicalJSON/toBase64url/the digest below mirror
 // packages/ai/src/util/canonical-hash.ts, which `@ai-sdk/mcp` can't import
 // (wrong dependency direction, not exported). Keep them identical; if a third
@@ -47,7 +45,7 @@ export async function fingerprintMCPAppResource(
 ): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',
-    encoder.encode(
+    new TextEncoder().encode(
       canonicalJSON({
         html: resource.html,
         csp: resource.meta?.csp ?? null,

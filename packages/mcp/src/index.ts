@@ -21,6 +21,7 @@ export {
   type MCPAppResource,
   type MCPAppResourceCSP,
   type MCPAppResourceMeta,
+  type MCPAppResourcePermissions,
 } from './tool/mcp-apps';
 export {
   fingerprintMCPAppResource,

@@ -1,4 +1,4 @@
-import { MCP_APP_MIME_TYPE } from '@ai-sdk/mcp';
+import { MCP_APP_MIME_TYPE, type MCPAppResourceMeta } from '@ai-sdk/mcp';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { deriveTargetOrigin, MCPAppFrame } from './app-frame';
@@ -237,7 +237,7 @@ describe('MCPAppFrame session lifecycle', () => {
               camera: {},
               microphone: {},
               geolocation: true,
-            },
+            } as unknown as MCPAppResourceMeta['permissions'],
           },
         }}
         sandbox={{
