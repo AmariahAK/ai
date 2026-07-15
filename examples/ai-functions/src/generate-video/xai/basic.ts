@@ -15,6 +15,7 @@ run(async () => {
         duration: 5,
         providerOptions: {
           xai: {
+            pollIntervalMs: 5000, // HTTP 202 responses continue polling
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies XaiVideoModelOptions,
         },

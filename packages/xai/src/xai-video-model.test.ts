@@ -1385,6 +1385,142 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       };
     });
+
+    it('should treat an empty HTTP 202 generation response as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? { type: 'empty', status: 202 }
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(server.calls).toHaveLength(3);
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://vidgen.x.ai/output/video-001.mp4',
+        mediaType: 'video/mp4',
+      });
+    });
+
+    it('should treat an empty HTTP 202 edit response as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? { type: 'empty', status: 202 }
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      expect(server.calls).toHaveLength(3);
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://vidgen.x.ai/output/video-001.mp4',
+        mediaType: 'video/mp4',
+      });
+    });
+
+    it('should time out while receiving empty HTTP 202 responses', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'empty',
+        status: 202,
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              pollIntervalMs: 10,
+              pollTimeoutMs: 30,
+            },
+          },
+        }),
+      ).rejects.toThrow('timed out');
+
+      expect(server.calls.length).toBeGreaterThan(1);
+    });
+
+    it('should preserve abort behavior after an empty HTTP 202 response', async () => {
+      const abortController = new AbortController();
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = () => {
+        setTimeout(() => abortController.abort(), 0);
+        return { type: 'empty', status: 202 };
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+          providerOptions: {
+            xai: {
+              pollIntervalMs: 50,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+
+      expect(server.calls).toHaveLength(2);
+    });
+
+    it('should preserve unsuccessful polling response handling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          error: {
+            message: 'Video status request failed',
+          },
+        }),
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        message: 'Video status request failed',
+        statusCode: 500,
+      });
+    });
+
+    it('should reject malformed HTTP 200 completion responses', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 200,
+        body: 'not-json',
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        message: 'Invalid JSON response',
+        statusCode: 200,
+      });
+    });
   });
 
   describe('providerMetadata edge cases', () => {

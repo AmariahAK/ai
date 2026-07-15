@@ -1226,7 +1226,9 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   images. Used with `mode: 'reference-to-video'`.
 
 <Note>
-  Video generation is an asynchronous process that can take several minutes.
+  Video generation is an asynchronous process that can take several minutes. The
+  provider treats HTTP 202 status responses as still processing, including when
+  the response body is empty, and continues polling at `pollIntervalMs`.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
   reliable operation. Generated video URLs are ephemeral and should be
   downloaded promptly.
