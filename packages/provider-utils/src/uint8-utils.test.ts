@@ -40,13 +40,14 @@ describe('createTextDecoderStream', () => {
 });
 
 describe('toArrayBufferBackedUint8Array', () => {
-  it('creates a view over an existing ArrayBuffer without copying', () => {
+  it('returns an ArrayBuffer-backed input unchanged', () => {
     const buffer = new ArrayBuffer(4);
     const input = new Uint8Array(buffer, 1, 2);
     input.set([1, 2]);
 
     const result = toArrayBufferBackedUint8Array(input);
 
+    expect(result).toBe(input);
     expect(result.buffer).toBe(buffer);
     expect(result.byteOffset).toBe(1);
     expect(result).toEqual(new Uint8Array([1, 2]));

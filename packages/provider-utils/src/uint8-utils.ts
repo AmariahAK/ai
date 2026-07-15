@@ -34,16 +34,20 @@ export function createTextDecoderStream(): TransformStream<
 /**
  * Returns a Uint8Array backed by an ArrayBuffer.
  *
- * Creates a new view without copying when the input is already backed by an
- * ArrayBuffer. SharedArrayBuffer-backed and cross-realm inputs are copied into
- * a new ArrayBuffer.
+ * Returns the input unchanged when it is already backed by an ArrayBuffer.
+ * SharedArrayBuffer-backed and cross-realm inputs are copied into a new
+ * ArrayBuffer.
  */
 export function toArrayBufferBackedUint8Array(
   value: Uint8Array,
 ): Uint8Array<ArrayBuffer> {
-  return value.buffer instanceof ArrayBuffer
-    ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
-    : new Uint8Array(value);
+  return isArrayBufferBackedUint8Array(value) ? value : new Uint8Array(value);
+}
+
+function isArrayBufferBackedUint8Array(
+  value: Uint8Array,
+): value is Uint8Array<ArrayBuffer> {
+  return value.buffer instanceof ArrayBuffer;
 }
 
 export function convertBase64ToUint8Array(base64String: string) {
