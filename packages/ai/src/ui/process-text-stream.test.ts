@@ -29,7 +29,7 @@ describe('processTextStream', () => {
 
   it('should handle empty streams', async () => {
     const onChunk = vi.fn();
-    const stream = convertArrayToReadableStream<Uint8Array>([]);
+    const stream = convertArrayToReadableStream<Uint8Array<ArrayBuffer>>([]);
 
     await processTextStream({ stream, onTextPart: onChunk });
 

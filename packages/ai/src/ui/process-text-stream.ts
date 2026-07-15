@@ -1,13 +1,11 @@
-import { createTextDecoderStream } from '@ai-sdk/provider-utils';
-
 export async function processTextStream({
   stream,
   onTextPart,
 }: {
-  stream: ReadableStream<Uint8Array>;
+  stream: ReadableStream<Uint8Array<ArrayBuffer>>;
   onTextPart: (chunk: string) => Promise<void> | void;
 }): Promise<void> {
-  const reader = stream.pipeThrough(createTextDecoderStream()).getReader();
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
