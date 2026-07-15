@@ -1,0 +1,169 @@
+{
+  "id": "resp_0af1b57ae87e2013006a5745fe26d8819ea9f206ec2c2eadac",
+  "object": "response",
+  "created_at": 1784104446,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784104447,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-4o-mini-2024-07-18",
+  "moderation": null,
+  "output": [
+    {
+      "id": "ws_0af1b57ae87e2013006a5745fe6064819ead94dd7bec539ecc",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "Use web search to find the title of the official OpenAI API documentation page."
+        ],
+        "query": "Use web search to find the title of the official OpenAI API documentation page.",
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/quickstart/make-your-first-api-request?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/backward-compatibility?lang=ruby&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/models/object?lang=curl&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?trk=public_post_comment-text&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models/all?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?src_trk=em662f12e8ce7730.67771400510222362&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?src_trk=em6624b0c62e3a05.290691122031174284&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models/compare?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-responses-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-models-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://min.news/en/tech/64d95c2510ee06d4c1f89ead6da8cb50.html?utm_source=openai"
+          }
+        ]
+      }
+    },
+    {
+      "id": "msg_0af1b57ae87e2013006a5745fede8c819e8637256332976fe6",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "The official OpenAI API documentation page is titled \"OpenAI API Documentation.\" You can access it at https://platform.openai.com/docs. This comprehensive resource provides detailed information on the API's features, usage, and best practices. "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": null,
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "auto",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": {
+    "type": "web_search_preview"
+  },
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 1
+    }
+  },
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_content_types": ["text"],
+      "search_context_size": "low",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 325,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 47,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 372
+  },
+  "user": null,
+  "metadata": {}
+}
