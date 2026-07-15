@@ -7,8 +7,7 @@ export type JSONValue =
   | string
   | number
   | boolean
-  | JSONObject
-  | JSONArray
+  | Readonly<JSONObject>
   | readonly JSONValue[];
 
 export type JSONObject = {

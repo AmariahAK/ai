@@ -1,19 +1,37 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { JSONValue } from './json-value';
+import type { JSONArray, JSONObject, JSONValue } from './json-value';
 
 describe('JSONValue', () => {
-  it('should accept readonly arrays and objects containing them', () => {
-    const readonlyArray = [
-      'value',
-      {
-        nested: [1, true, null] as const,
-      },
-    ] as const;
+  it('should accept recursively readonly JSON values', () => {
     const readonlyObject = {
-      nested: readonlyArray,
+      null: null,
+      string: 'value',
+      number: 1,
+      boolean: true,
+      object: {
+        nested: 'value',
+      },
+      array: [
+        'value',
+        {
+          nested: [1, true, null],
+        },
+      ],
+      undefined: undefined,
     } as const;
 
-    expectTypeOf(readonlyArray).toMatchTypeOf<JSONValue>();
     expectTypeOf(readonlyObject).toMatchTypeOf<JSONValue>();
+    expectTypeOf(readonlyObject.array).toMatchTypeOf<JSONValue>();
+  });
+
+  it('should preserve mutable object and array aliases', () => {
+    const object: JSONObject = {};
+    const array: JSONArray = [];
+
+    object.value = 'value';
+    array.push(object);
+
+    expectTypeOf(object).toMatchTypeOf<JSONValue>();
+    expectTypeOf(array).toMatchTypeOf<JSONValue>();
   });
 });
