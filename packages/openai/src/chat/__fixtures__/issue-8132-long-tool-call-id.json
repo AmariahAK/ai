@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-E1oMwyGAs7Hh9FR5oUTj0lK67dvjY",
+  "object": "chat.completion",
+  "created": 1784100654,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "OpenAI API Documentation",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 434,
+    "completion_tokens": 4,
+    "total_tokens": 438,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_b29d6a4e3f"
+}

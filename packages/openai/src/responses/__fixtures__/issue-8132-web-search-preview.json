@@ -1,0 +1,165 @@
+{
+  "id": "resp_09354705ace9fe75006a5737295be8819d8296b38849681a04",
+  "object": "response",
+  "created_at": 1784100649,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784100651,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-4o-mini-2024-07-18",
+  "moderation": null,
+  "output": [
+    {
+      "id": "ws_09354705ace9fe75006a573729fc8c819db0c9744efca3ee7e",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": ["OpenAI API documentation homepage title"],
+        "query": "OpenAI API documentation homepage title",
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/quickstart/make-your-first-api-request?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/backward-compatibility?lang=ruby&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://developers.openai.com/api/docs/models/all?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://platform.openai.com/docs/api-reference/models/object?lang=curl&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://openai.com/api/?trk=public_post_comment-text&utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://public-api.org/api/1665/openai?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-responses-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai/openai-models-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai-apis/openai-assistants-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://apis.io/apis/openai-apis/openai-completions-api/?utm_source=openai"
+          },
+          {
+            "type": "url",
+            "url": "https://min.news/en/tech/64d95c2510ee06d4c1f89ead6da8cb50.html?utm_source=openai"
+          }
+        ]
+      }
+    },
+    {
+      "id": "msg_09354705ace9fe75006a57372ad080819d99ee052fe788798c",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "The current title of the OpenAI API documentation homepage is \"OpenAI API Documentation.\" You can access it at https://platform.openai.com/docs. "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": null,
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 1
+    }
+  },
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_content_types": ["text"],
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 317,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 49,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 366
+  },
+  "user": null,
+  "metadata": {}
+}
