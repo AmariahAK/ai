@@ -339,6 +339,117 @@ describe('urlContextMetadata', () => {
   });
 });
 
+describe('code execution results', () => {
+  const responseBody = JSON.parse(
+    fs.readFileSync(
+      'src/__fixtures__/google-code-execution-multiple-results.json',
+      'utf8',
+    ),
+  );
+
+  const createProvider = ({ stream }: { stream: boolean }) =>
+    createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+      fetch: async () =>
+        stream
+          ? new Response(`data: ${JSON.stringify(responseBody)}\n\n`, {
+              headers: { 'content-type': 'text/event-stream' },
+              status: 200,
+            })
+          : new Response(JSON.stringify(responseBody), {
+              headers: { 'content-type': 'application/json' },
+              status: 200,
+            }),
+    });
+
+  it('associates multiple results with the preceding tool call', async () => {
+    const { content } = await createProvider({ stream: false })
+      .languageModel('gemini-3-flash-preview')
+      .doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    expect(
+      content
+        .filter(
+          part => part.type === 'tool-call' || part.type === 'tool-result',
+        )
+        .map(part => ({
+          type: part.type,
+          toolCallId: part.toolCallId,
+        })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "toolCallId": "test-id",
+          "type": "tool-call",
+        },
+        {
+          "toolCallId": "test-id",
+          "type": "tool-result",
+        },
+        {
+          "toolCallId": "test-id",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('streams multiple results for the preceding tool call', async () => {
+    const { stream } = await createProvider({ stream: true })
+      .languageModel('gemini-3-flash-preview')
+      .doStream({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events
+        .filter(
+          event => event.type === 'tool-call' || event.type === 'tool-result',
+        )
+        .map(event => ({
+          type: event.type,
+          toolCallId: event.toolCallId,
+        })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "toolCallId": "test-id",
+          "type": "tool-call",
+        },
+        {
+          "toolCallId": "test-id",
+          "type": "tool-result",
+        },
+        {
+          "toolCallId": "test-id",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+});
+
 describe('doGenerate', () => {
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
