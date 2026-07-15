@@ -131,6 +131,35 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
 
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
     const safetyThreshold = googleOptions?.threshold;
     const safetySettings =
       googleOptions?.safetySettings ??
@@ -191,9 +220,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
