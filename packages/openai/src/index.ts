@@ -20,6 +20,14 @@ export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-o
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
 export type {
+<<<<<<< HEAD
+=======
+  OpenAIComputerAction,
+  OpenAIComputerSafetyCheck,
+} from './tool/computer';
+export type {
+  OpenaiResponsesCompactionProviderMetadata,
+>>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
   OpenaiResponsesProviderMetadata,
   OpenaiResponsesReasoningProviderMetadata,
   OpenaiResponsesTextProviderMetadata,
