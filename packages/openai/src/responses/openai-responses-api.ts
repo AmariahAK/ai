@@ -6,19 +6,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-<<<<<<< HEAD
-=======
-const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema.optional()),
-  ]),
-);
-
 const openaiResponsesComputerSafetyCheckSchema = z.object({
   id: z.string(),
   code: z.string().nullish(),
@@ -86,7 +73,6 @@ const openaiResponsesComputerCallSchema = z.object({
     .nullish(),
 });
 
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
@@ -204,37 +190,11 @@ export type OpenAIResponsesFunctionCallOutput = {
       >;
 };
 
-<<<<<<< HEAD
-export type OpenAIResponsesComputerCall = {
-  type: 'computer_call';
-  id: string;
-  status?: string;
-=======
-export type OpenAIResponsesCustomToolCall = {
-  type: 'custom_tool_call';
-  id?: string;
-  call_id: string;
-  name: string;
-  input: string;
-};
-
-export type OpenAIResponsesCustomToolCallOutput = {
-  type: 'custom_tool_call_output';
-  call_id: string;
-  output: OpenAIResponsesFunctionCallOutput['output'];
-};
-
-export type OpenAIResponsesMcpApprovalResponse = {
-  type: 'mcp_approval_response';
-  approval_request_id: string;
-  approve: boolean;
-};
-
-export type OpenAIResponsesComputerAction = InferSchema<
+export type OpenAIResponsesComputerAction = z.infer<
   typeof openaiResponsesComputerActionSchema
 >;
 
-export type OpenAIResponsesComputerCall = InferSchema<
+export type OpenAIResponsesComputerCall = z.infer<
   typeof openaiResponsesComputerCallSchema
 >;
 
@@ -252,7 +212,6 @@ export type OpenAIResponsesComputerCallOutput = {
     code?: string;
     message?: string;
   }>;
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 };
 
 export type OpenAIResponsesLocalShellCall = {
@@ -617,140 +576,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
               env: z.record(z.string(), z.string()).optional(),
             }),
           }),
-<<<<<<< HEAD
-          z.object({
-            type: z.literal('computer_call'),
-            id: z.string(),
-            status: z.literal('completed'),
-=======
           openaiResponsesComputerCallSchema,
-          z.object({
-            type: z.literal('mcp_call'),
-            id: z.string(),
-            status: z.string(),
-            arguments: z.string(),
-            name: z.string(),
-            server_label: z.string(),
-            output: z.string().nullish(),
-            error: z
-              .union([
-                z.string(),
-                z
-                  .object({
-                    type: z.string().optional(),
-                    code: z.union([z.number(), z.string()]).optional(),
-                    message: z.string().optional(),
-                  })
-                  .loose(),
-              ])
-              .nullish(),
-            approval_request_id: z.string().nullish(),
-          }),
-          z.object({
-            type: z.literal('mcp_list_tools'),
-            id: z.string(),
-            server_label: z.string(),
-            tools: z.array(
-              z.object({
-                name: z.string(),
-                description: z.string().optional(),
-                input_schema: z.any(),
-                annotations: z.record(z.string(), z.unknown()).optional(),
-              }),
-            ),
-            error: z
-              .union([
-                z.string(),
-                z
-                  .object({
-                    type: z.string().optional(),
-                    code: z.union([z.number(), z.string()]).optional(),
-                    message: z.string().optional(),
-                  })
-                  .loose(),
-              ])
-              .optional(),
-          }),
-          z.object({
-            type: z.literal('mcp_approval_request'),
-            id: z.string(),
-            server_label: z.string(),
-            name: z.string(),
-            arguments: z.string(),
-            approval_request_id: z.string().optional(),
-          }),
-          z.object({
-            type: z.literal('apply_patch_call'),
-            id: z.string(),
-            call_id: z.string(),
-            status: z.enum(['in_progress', 'completed']),
-            operation: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('create_file'),
-                path: z.string(),
-                diff: z.string(),
-              }),
-              z.object({
-                type: z.literal('delete_file'),
-                path: z.string(),
-              }),
-              z.object({
-                type: z.literal('update_file'),
-                path: z.string(),
-                diff: z.string(),
-              }),
-            ]),
-          }),
-          z.object({
-            type: z.literal('shell_call'),
-            id: z.string(),
-            call_id: z.string(),
-            status: z.enum(['in_progress', 'completed', 'incomplete']),
-            action: z.object({
-              commands: z.array(z.string()),
-            }),
-          }),
-          z.object({
-            type: z.literal('compaction'),
-            id: z.string(),
-            encrypted_content: z.string(),
-          }),
-          z.object({
-            type: z.literal('shell_call_output'),
-            id: z.string(),
-            call_id: z.string(),
-            status: z.enum(['in_progress', 'completed', 'incomplete']),
-            output: z.array(
-              z.object({
-                stdout: z.string(),
-                stderr: z.string(),
-                outcome: z.discriminatedUnion('type', [
-                  z.object({ type: z.literal('timeout') }),
-                  z.object({
-                    type: z.literal('exit'),
-                    exit_code: z.number(),
-                  }),
-                ]),
-              }),
-            ),
-          }),
-          z.object({
-            type: z.literal('tool_search_call'),
-            id: z.string(),
-            execution: z.enum(['server', 'client']),
-            call_id: z.string().nullable(),
-            status: z.enum(['in_progress', 'completed', 'incomplete']),
-            arguments: z.unknown(),
-          }),
-          z.object({
-            type: z.literal('tool_search_output'),
-            id: z.string(),
-            execution: z.enum(['server', 'client']),
-            call_id: z.string().nullable(),
-            status: z.enum(['in_progress', 'completed', 'incomplete']),
-            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
-          }),
         ]),
       }),
       z.object({

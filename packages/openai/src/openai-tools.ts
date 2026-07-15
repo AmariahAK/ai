@@ -1,9 +1,5 @@
 import { codeInterpreter } from './tool/code-interpreter';
-<<<<<<< HEAD
-=======
 import { computer } from './tool/computer';
-import { customTool } from './tool/custom';
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';

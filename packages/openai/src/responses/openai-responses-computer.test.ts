@@ -7,11 +7,6 @@ import { describe, expect, it } from 'vitest';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 
-const toolNameMapping = {
-  toProviderToolName: (name: string) => name,
-  toCustomToolName: (name: string) => name,
-};
-
 function createModel() {
   return new OpenAIResponsesLanguageModel('gpt-5.4', {
     provider: 'openai',
@@ -136,7 +131,7 @@ describe('OpenAI Responses computer tool', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Use it.' }] }],
       tools: [
         {
-          type: 'provider',
+          type: 'provider-defined',
           id: 'openai.computer',
           name: 'computer',
           args: {},
@@ -158,7 +153,7 @@ describe('OpenAI Responses computer tool', () => {
         },
       },
     ]);
-    expect(result.finishReason.unified).toBe('tool-calls');
+    expect(result.finishReason).toBe('tool-calls');
   });
 
   it('decodes batched actions in streaming responses', async () => {
@@ -210,7 +205,7 @@ describe('OpenAI Responses computer tool', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Use it.' }] }],
       tools: [
         {
-          type: 'provider',
+          type: 'provider-defined',
           id: 'openai.computer',
           name: 'computer',
           args: {},
@@ -241,7 +236,7 @@ describe('OpenAI Responses computer tool', () => {
     });
     expect(events.at(-1)).toMatchObject({
       type: 'finish',
-      finishReason: { unified: 'tool-calls' },
+      finishReason: 'tool-calls',
     });
   });
 
@@ -349,9 +344,7 @@ describe('OpenAI Responses computer tool', () => {
             ],
           },
         ],
-        toolNameMapping,
         systemMessageMode: 'system',
-        providerOptionsName: 'openai',
         store,
         hasPreviousResponseId,
         hasComputerTool: true,
@@ -403,9 +396,7 @@ describe('OpenAI Responses computer tool', () => {
           ],
         },
       ],
-      toolNameMapping,
       systemMessageMode: 'system',
-      providerOptionsName: 'openai',
       store: true,
       hasComputerTool: true,
     });

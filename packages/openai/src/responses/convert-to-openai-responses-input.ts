@@ -11,15 +11,8 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import {
-<<<<<<< HEAD
-=======
-  applyPatchInputSchema,
-  applyPatchOutputSchema,
-} from '../tool/apply-patch';
 import { computerInputSchema, computerOutputSchema } from '../tool/computer';
 import {
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
@@ -55,26 +48,16 @@ export async function convertToOpenAIResponsesInput({
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
-<<<<<<< HEAD
-=======
-  hasShellTool = false,
-  hasApplyPatchTool = false,
   hasComputerTool = false,
-  customProviderToolNames,
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+  hasPreviousResponseId = false,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
-<<<<<<< HEAD
-=======
-  hasShellTool?: boolean;
-  hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
-  customProviderToolNames?: Set<string>;
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+  hasPreviousResponseId?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -259,29 +242,18 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
-<<<<<<< HEAD
+              if (
+                hasPreviousResponseId &&
+                store &&
+                id != null &&
+                hasComputerTool &&
+                part.toolName === 'computer'
+              ) {
+                break;
+              }
+
               // item references reduce the payload size
               if (store && id != null) {
-=======
-              // Provider-defined tool calls (local_shell, shell, apply_patch,
-              // computer, and custom tools) are stored by the API and can be sent as an
-              // `item_reference` to reduce payload size. Plain client-executed
-              // function calls must NOT be: the matching `function_call_output`
-              // can only reference the call by `call_id` (`call_...`), which
-              // the API cannot reconcile with an item id (`fc_...`) or an
-              // `item_reference`. Sending either breaks call/output pairing and
-              // makes follow-up requests fail with "No tool call found for
-              // function call output with call_id", most visibly with parallel
-              // tool calls across multiple steps.
-              const isProviderDefinedToolCall =
-                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
-                (hasShellTool && resolvedToolName === 'shell') ||
-                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (hasComputerTool && resolvedToolName === 'computer') ||
-                (customProviderToolNames?.has(resolvedToolName) ?? false);
-
-              if (store && id != null && isProviderDefinedToolCall) {
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -308,45 +280,7 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-<<<<<<< HEAD
-=======
-              if (hasShellTool && resolvedToolName === 'shell') {
-                const parsedInput = await validateTypes({
-                  value: part.input,
-                  schema: shellInputSchema,
-                });
-                input.push({
-                  type: 'shell_call',
-                  call_id: part.toolCallId,
-                  id: id!,
-                  status: 'completed',
-                  action: {
-                    commands: parsedInput.action.commands,
-                    timeout_ms: parsedInput.action.timeoutMs,
-                    max_output_length: parsedInput.action.maxOutputLength,
-                  },
-                });
-
-                break;
-              }
-
-              if (hasApplyPatchTool && resolvedToolName === 'apply_patch') {
-                const parsedInput = await validateTypes({
-                  value: part.input,
-                  schema: applyPatchInputSchema,
-                });
-                input.push({
-                  type: 'apply_patch_call',
-                  call_id: parsedInput.callId,
-                  id: id!,
-                  status: 'completed',
-                  operation: parsedInput.operation,
-                });
-
-                break;
-              }
-
-              if (hasComputerTool && resolvedToolName === 'computer') {
+              if (hasComputerTool && part.toolName === 'computer') {
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: computerInputSchema,
@@ -395,21 +329,6 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (customProviderToolNames?.has(resolvedToolName)) {
-                input.push({
-                  type: 'custom_tool_call',
-                  call_id: part.toolCallId,
-                  name: resolvedToolName,
-                  input:
-                    typeof part.input === 'string'
-                      ? part.input
-                      : JSON.stringify(part.input),
-                  id,
-                });
-                break;
-              }
-
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
@@ -533,62 +452,12 @@ export async function convertToOpenAIResponsesInput({
               call_id: part.toolCallId,
               output: parsedOutput.output,
             });
-<<<<<<< HEAD
             break;
-=======
-            continue;
-          }
-
-          if (
-            hasShellTool &&
-            resolvedToolName === 'shell' &&
-            output.type === 'json'
-          ) {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: shellOutputSchema,
-            });
-
-            input.push({
-              type: 'shell_call_output',
-              call_id: part.toolCallId,
-              output: parsedOutput.output.map(item => ({
-                stdout: item.stdout,
-                stderr: item.stderr,
-                outcome:
-                  item.outcome.type === 'timeout'
-                    ? { type: 'timeout' as const }
-                    : {
-                        type: 'exit' as const,
-                        exit_code: item.outcome.exitCode,
-                      },
-              })),
-            });
-            continue;
-          }
-
-          if (
-            hasApplyPatchTool &&
-            part.toolName === 'apply_patch' &&
-            output.type === 'json'
-          ) {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: applyPatchOutputSchema,
-            });
-
-            input.push({
-              type: 'apply_patch_call_output',
-              call_id: part.toolCallId,
-              status: parsedOutput.status,
-              output: parsedOutput.output,
-            });
-            continue;
           }
 
           if (
             hasComputerTool &&
-            resolvedToolName === 'computer' &&
+            part.toolName === 'computer' &&
             output.type === 'json'
           ) {
             const parsedOutput = await validateTypes({
@@ -613,114 +482,6 @@ export async function convertToOpenAIResponsesInput({
                 })),
             });
             continue;
-          }
-
-          if (customProviderToolNames?.has(resolvedToolName)) {
-            let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
-            switch (output.type) {
-              case 'text':
-              case 'error-text':
-                outputValue = output.value;
-                break;
-              case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
-                break;
-              case 'json':
-              case 'error-json':
-                outputValue = JSON.stringify(output.value);
-                break;
-              case 'content':
-                outputValue = output.value
-                  .map(item => {
-                    const promptCacheBreakpoint = getPromptCacheBreakpoint(
-                      item.providerOptions,
-                      providerOptionsName,
-                    );
-                    switch (item.type) {
-                      case 'text':
-                        return {
-                          type: 'input_text' as const,
-                          text: item.text,
-                          ...(promptCacheBreakpoint != null && {
-                            prompt_cache_breakpoint: promptCacheBreakpoint,
-                          }),
-                        };
-                      case 'file': {
-                        const topLevel = getTopLevelMediaType(item.mediaType);
-                        const imageDetail =
-                          item.providerOptions?.[providerOptionsName]
-                            ?.imageDetail;
-
-                        if (item.data.type === 'data') {
-                          const fullMediaType = resolveFullMediaType({
-                            part: item,
-                          });
-                          if (topLevel === 'image') {
-                            return {
-                              type: 'input_image' as const,
-                              image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                              detail: imageDetail,
-                              ...(promptCacheBreakpoint != null && {
-                                prompt_cache_breakpoint: promptCacheBreakpoint,
-                              }),
-                            };
-                          }
-                          return {
-                            type: 'input_file' as const,
-                            filename: item.filename ?? 'data',
-                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                            ...(promptCacheBreakpoint != null && {
-                              prompt_cache_breakpoint: promptCacheBreakpoint,
-                            }),
-                          };
-                        }
-
-                        if (item.data.type === 'url') {
-                          if (topLevel === 'image') {
-                            return {
-                              type: 'input_image' as const,
-                              image_url: item.data.url.toString(),
-                              detail: imageDetail,
-                              ...(promptCacheBreakpoint != null && {
-                                prompt_cache_breakpoint: promptCacheBreakpoint,
-                              }),
-                            };
-                          }
-                          return {
-                            type: 'input_file' as const,
-                            file_url: item.data.url.toString(),
-                            ...(promptCacheBreakpoint != null && {
-                              prompt_cache_breakpoint: promptCacheBreakpoint,
-                            }),
-                          };
-                        }
-
-                        warnings.push({
-                          type: 'other',
-                          message: `unsupported custom tool content part type: ${item.type} with data type: ${item.data.type}`,
-                        });
-                        return undefined;
-                      }
-                      default:
-                        warnings.push({
-                          type: 'other',
-                          message: `unsupported custom tool content part type: ${item.type}`,
-                        });
-                        return undefined;
-                    }
-                  })
-                  .filter(isNonNullable);
-                break;
-              default:
-                outputValue = '';
-            }
-            input.push({
-              type: 'custom_tool_call_output',
-              call_id: part.toolCallId,
-              output: outputValue,
-            } satisfies OpenAIResponsesCustomToolCallOutput);
-            continue;
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
           }
 
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];

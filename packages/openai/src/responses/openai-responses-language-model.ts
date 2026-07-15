@@ -10,6 +10,7 @@ import {
   APICallError,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   type InferValidator,
   type ParseResult,
   combineHeaders,
@@ -38,14 +39,9 @@ import {
   type OpenAIResponsesIncludeValue,
   type OpenAIResponsesLogprobs,
   type OpenAIResponsesWebSearchAction,
-<<<<<<< HEAD
+  type OpenAIResponsesComputerAction,
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
-=======
-  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
-  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
-  type OpenAIResponsesComputerAction,
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 } from './openai-responses-api';
 import {
   type OpenAIResponsesModelId,
@@ -55,35 +51,6 @@ import {
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import type { ResponsesUsageProviderMetadata } from './openai-responses-provider-metadata';
-
-<<<<<<< HEAD
-export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
-=======
-/**
- * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
- * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
- * the pending approval in our system. When the user responds to the approval (and we
- * continue the conversation), we need to map the approval request ID back to our tool call ID
- * so that tool results reference the correct tool call.
- */
-function extractApprovalRequestIdToToolCallIdMapping(
-  prompt: LanguageModelV4Prompt,
-): Record<string, string> {
-  const mapping: Record<string, string> = {};
-  for (const message of prompt) {
-    if (message.role !== 'assistant') continue;
-    for (const part of message.content) {
-      if (part.type !== 'tool-call') continue;
-      const approvalRequestId = part.providerOptions?.openai
-        ?.approvalRequestId as string | undefined;
-      if (approvalRequestId != null) {
-        mapping[approvalRequestId] = part.toolCallId;
-      }
-    }
-  }
-  return mapping;
-}
 
 function mapComputerAction(
   action: OpenAIResponsesComputerAction,
@@ -166,9 +133,8 @@ function mapComputerCallInput({
   };
 }
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -246,39 +212,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-<<<<<<< HEAD
-=======
-    const toolNameMapping = createToolNameMapping({
-      tools,
-      providerToolNames: {
-        'openai.code_interpreter': 'code_interpreter',
-        'openai.computer': 'computer',
-        'openai.file_search': 'file_search',
-        'openai.image_generation': 'image_generation',
-        'openai.local_shell': 'local_shell',
-        'openai.shell': 'shell',
-        'openai.web_search': 'web_search',
-        'openai.web_search_preview': 'web_search_preview',
-        'openai.mcp': 'mcp',
-        'openai.apply_patch': 'apply_patch',
-        'openai.tool_search': 'tool_search',
-      },
-    });
-
-    const customProviderToolNames = new Set<string>();
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-      allowedTools: openaiOptions?.allowedTools ?? undefined,
-      toolNameMapping,
-      customProviderToolNames,
-    });
-
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -286,16 +219,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
-<<<<<<< HEAD
-=======
-        hasShellTool: hasOpenAITool('openai.shell'),
-        hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
         hasComputerTool: hasOpenAITool('openai.computer'),
-        customProviderToolNames:
-          customProviderToolNames.size > 0
-            ? customProviderToolNames
-            : undefined,
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+        hasPreviousResponseId: openaiOptions?.previousResponseId != null,
       });
 
     warnings.push(...inputWarnings);
@@ -782,28 +707,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'computer_call': {
-<<<<<<< HEAD
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName: 'computer_use',
-            input: '',
-            providerExecuted: true,
-          });
-
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName: 'computer_use',
-            result: {
-              type: 'computer_use_tool_result',
-              status: part.status || 'completed',
-=======
           if (part.call_id == null) {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: toolNameMapping.toCustomToolName('computer_use'),
+              toolName: 'computer_use',
               input: '',
               providerExecuted: true,
             });
@@ -811,30 +719,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'tool-result',
               toolCallId: part.id,
-              toolName: toolNameMapping.toCustomToolName('computer_use'),
+              toolName: 'computer_use',
               result: {
                 type: 'computer_use_tool_result',
                 status: part.status,
               },
+              providerExecuted: true,
             });
             break;
           }
 
           hasFunctionCall = true;
-          const toolName = toolNameMapping.toCustomToolName('computer');
 
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
-            toolName,
+            toolName: 'computer',
             input: JSON.stringify(mapComputerCallInput(part)),
             providerMetadata: {
-              [providerOptionsName]: {
+              [providerKey]: {
                 itemId: part.id,
               },
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
             },
-            providerExecuted: true,
           });
           break;
         }
@@ -1089,26 +995,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
               } else if (value.item.type === 'computer_call') {
                 const toolCallId = value.item.call_id ?? value.item.id;
+                const toolName =
+                  value.item.call_id == null ? 'computer_use' : 'computer';
                 ongoingToolCalls[value.output_index] = {
-<<<<<<< HEAD
-                  toolName: 'computer_use',
-                  toolCallId: value.item.id,
-=======
-                  toolName: toolNameMapping.toCustomToolName('computer'),
+                  toolName,
                   toolCallId,
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
-<<<<<<< HEAD
-                  id: value.item.id,
-                  toolName: 'computer_use',
-                  providerExecuted: true,
-=======
                   id: toolCallId,
-                  toolName: toolNameMapping.toCustomToolName('computer'),
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+                  toolName,
+                  ...(value.item.call_id == null && {
+                    providerExecuted: true,
+                  }),
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1241,24 +1141,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: value.item.id,
-                    toolName: toolNameMapping.toCustomToolName('computer_use'),
+                    toolName: 'computer_use',
                     input: '',
                     providerExecuted: true,
                   });
                   controller.enqueue({
                     type: 'tool-result',
                     toolCallId: value.item.id,
-                    toolName: toolNameMapping.toCustomToolName('computer_use'),
+                    toolName: 'computer_use',
                     result: {
                       type: 'computer_use_tool_result',
                       status: value.item.status,
                     },
+                    providerExecuted: true,
                   });
                   return;
                 }
 
                 hasFunctionCall = true;
-                const toolName = toolNameMapping.toCustomToolName('computer');
                 const input = JSON.stringify(mapComputerCallInput(value.item));
 
                 controller.enqueue({
@@ -1274,31 +1174,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
                 controller.enqueue({
                   type: 'tool-call',
-<<<<<<< HEAD
-                  toolCallId: value.item.id,
-                  toolName: 'computer_use',
-                  input: '',
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: 'computer_use',
-                  result: {
-                    type: 'computer_use_tool_result',
-                    status: value.item.status || 'completed',
-=======
                   toolCallId: value.item.call_id,
-                  toolName,
+                  toolName: 'computer',
                   input,
                   providerMetadata: {
-                    [providerOptionsName]: {
+                    [providerKey]: {
                       itemId: value.item.id,
                     },
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
                   },
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;

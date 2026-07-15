@@ -138,6 +138,7 @@ const computerToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   {}
 >({
   id: 'openai.computer',
+  name: 'computer',
   inputSchema: computerInputSchema,
   outputSchema: computerOutputSchema,
 });
