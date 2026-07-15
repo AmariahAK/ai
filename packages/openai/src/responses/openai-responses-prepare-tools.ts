@@ -30,8 +30,21 @@ export async function prepareResponsesTools({
     | { type: 'web_search' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
+<<<<<<< HEAD
     | { type: 'image_generation' };
   toolWarnings: LanguageModelV2CallWarning[];
+=======
+    | { type: 'mcp' }
+    | { type: 'image_generation' }
+    | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
+  toolWarnings: SharedV4Warning[];
+>>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
@@ -84,6 +97,35 @@ export async function prepareResponsesTools({
             });
             break;
           }
+<<<<<<< HEAD
+=======
+          case 'openai.shell': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: shellArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'shell',
+              ...(args.environment && {
+                environment: mapShellEnvironment(args.environment),
+              }),
+            });
+            break;
+          }
+          case 'openai.apply_patch': {
+            openaiTools.push({
+              type: 'apply_patch',
+            });
+            break;
+          }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
+            });
+            break;
+          }
+>>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
           case 'openai.web_search_preview': {
             const args = await validateTypes({
               value: tool.args,
@@ -179,6 +221,7 @@ export async function prepareResponsesTools({
       return {
         tools: openaiTools,
         toolChoice:
+<<<<<<< HEAD
           toolChoice.toolName === 'code_interpreter' ||
           toolChoice.toolName === 'file_search' ||
           toolChoice.toolName === 'image_generation' ||
@@ -186,6 +229,20 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'web_search'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
+=======
+          resolvedToolName === 'code_interpreter' ||
+          resolvedToolName === 'file_search' ||
+          resolvedToolName === 'image_generation' ||
+          resolvedToolName === 'web_search_preview' ||
+          resolvedToolName === 'web_search' ||
+          resolvedToolName === 'mcp' ||
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer'
+            ? { type: resolvedToolName }
+            : resolvedCustomProviderToolNames.has(resolvedToolName)
+              ? { type: 'custom', name: resolvedToolName }
+              : { type: 'function', name: resolvedToolName },
+>>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
         toolWarnings,
       };
     default: {

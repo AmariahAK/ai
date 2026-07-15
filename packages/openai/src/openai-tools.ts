@@ -1,4 +1,9 @@
 import { codeInterpreter } from './tool/code-interpreter';
+<<<<<<< HEAD
+=======
+import { computer } from './tool/computer';
+import { customTool } from './tool/custom';
+>>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
@@ -16,6 +21,16 @@ export const openaiTools = {
    * Must have name `code_interpreter`.
    */
   codeInterpreter,
+
+  /**
+   * The computer tool allows models to operate a browser or desktop through
+   * batched UI actions. Your application executes the actions and returns an
+   * updated screenshot.
+   *
+   * WARNING: Run computer use in an isolated environment, treat on-screen
+   * content as untrusted, and require confirmation for consequential actions.
+   */
+  computer,
 
   /**
    * File search is a tool available in the Responses API. It enables models to
