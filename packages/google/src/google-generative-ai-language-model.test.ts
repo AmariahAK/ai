@@ -2,7 +2,6 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
-import { readFileSync } from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
@@ -3454,17 +3453,29 @@ describe('doStream', () => {
     `);
   });
 
-  it('should preserve image thought signatures from a live stream', async () => {
+  it('should preserve thought signatures on streamed files', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
-        readFileSync(
-          new URL(
-            './__fixtures__/issue-10660-image-thought-signature.chunks.txt',
-            import.meta.url,
-          ),
-          'utf8',
-        ),
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'AA==',
+                    },
+                    thoughtSignature: 'live-image-thought-signature',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
       ],
     };
 
@@ -3475,16 +3486,18 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const imageEvent = events.find(event => event.type === 'file');
 
-    expect(imageEvent).toStrictEqual({
-      type: 'file',
-      data: 'AA==',
-      mediaType: 'image/jpeg',
-      providerMetadata: {
-        google: {
-          thoughtSignature: 'live-image-thought-signature',
+    expect(imageEvent).toMatchInlineSnapshot(`
+      {
+        "data": "AA==",
+        "mediaType": "image/jpeg",
+        "providerMetadata": {
+          "google": {
+            "thoughtSignature": "live-image-thought-signature",
+          },
         },
-      },
-    });
+        "type": "file",
+      }
+    `);
   });
 
   it('should stream text and files in correct order', async () => {

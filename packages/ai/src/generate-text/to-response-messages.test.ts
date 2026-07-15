@@ -803,4 +803,42 @@ describe('toResponseMessages', () => {
       ]
     `);
   });
+
+  it('should include provider metadata in file parts', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'file',
+          file: new DefaultGeneratedFile({
+            data: 'AA==',
+            mediaType: 'image/jpeg',
+          }),
+          providerMetadata: {
+            testProvider: { signature: 'test-signature' },
+          },
+        },
+      ],
+      tools: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "data": "AA==",
+              "mediaType": "image/jpeg",
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "test-signature",
+                },
+              },
+              "type": "file",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
 });

@@ -63,28 +63,6 @@ importers:
         specifier: 4.1.0
         version: 4.1.0(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.12.10(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.1(@types/node@22.19.19)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.7.0))
 
-  examples/ai-functions:
-    dependencies:
-      '@ai-sdk/google':
-        specifier: workspace:*
-        version: link:../../packages/google
-      ai:
-        specifier: workspace:*
-        version: link:../../packages/ai
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-    devDependencies:
-      '@types/node':
-        specifier: 20.17.24
-        version: 20.17.24
-      tsx:
-        specifier: 4.19.2
-        version: 4.19.2
-      typescript:
-        specifier: 5.8.3
-        version: 5.8.3
-
   examples/ai-core:
     dependencies:
       '@ai-sdk/alibaba':

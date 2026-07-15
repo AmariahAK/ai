@@ -598,6 +598,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
+                    ...(part.thoughtSignature
+                      ? {
+                          providerMetadata: {
+                            google: {
+                              thoughtSignature: part.thoughtSignature,
+                            },
+                          },
+                        }
+                      : {}),
                   });
                 }
               }
@@ -918,6 +927,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thoughtSignature: z.string().nullish(),
           }),
           z.object({
             executableCode: z

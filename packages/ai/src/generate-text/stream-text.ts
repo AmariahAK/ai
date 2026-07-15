@@ -809,7 +809,13 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
         }
 
         if (part.type === 'source') {

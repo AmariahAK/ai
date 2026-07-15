@@ -77,6 +77,69 @@ describe('runToolsTransformation', () => {
     `);
   });
 
+  it('should forward file provider metadata', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'file',
+          data: 'AA==',
+          mediaType: 'image/jpeg',
+          providerMetadata: {
+            testProvider: { signature: 'test-signature' },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      tools: undefined,
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "AA==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "test-signature",
+              },
+            },
+            "type": "file",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+  });
+
   it('should handle async tool execution', async () => {
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =
       convertArrayToReadableStream([
