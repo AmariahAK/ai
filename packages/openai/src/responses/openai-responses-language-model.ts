@@ -101,10 +101,6 @@ function extractApprovalRequestIdToToolCallIdMapping(
   return mapping;
 }
 
-<<<<<<< HEAD
-export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
-=======
 function mapComputerAction(
   action: OpenAIResponsesComputerAction,
 ): InferSchema<typeof computerInputSchema>['actions'][number] {
@@ -186,9 +182,8 @@ function mapComputerCallInput({
   };
 }
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
->>>>>>> 0063c2d35 (feat: add OpenAI Responses API computer tool support (#17290))
+export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAIResponsesModelId;
 

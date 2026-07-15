@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -95,7 +95,7 @@ export const computerOutputSchema = lazySchema(() =>
 export type OpenAIComputerAction = z.infer<typeof computerActionSchema>;
 export type OpenAIComputerSafetyCheck = z.infer<typeof safetyCheckSchema>;
 
-const computerToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
+const computerToolFactory = createProviderToolFactoryWithOutputSchema<
   {
     /**
      * Ordered UI actions to execute.

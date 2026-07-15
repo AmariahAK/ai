@@ -13,8 +13,7 @@ describe('computer tool type', () => {
     expectTypeOf(computerTool).toExtend<
       Tool<
         InferSchema<typeof computerInputSchema>,
-        InferSchema<typeof computerOutputSchema>,
-        {}
+        InferSchema<typeof computerOutputSchema>
       >
     >();
   });
