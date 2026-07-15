@@ -479,25 +479,27 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
-// Captured from the Responses API when OpenAI returned an early
-// insufficient_quota stream error after HTTP 200. This shape differs from the
-// currently documented ResponseErrorEvent below.
+// Error events differ slightly across Responses transports. SSE has returned
+// sequence_number plus a nested error object, while documented WebSocket errors
+// can omit sequence_number and put a numeric HTTP status beside that object.
 const openaiResponsesNestedErrorChunkSchema = z.object({
   type: z.literal('error'),
-  sequence_number: z.number(),
+  sequence_number: z.number().nullish(),
+  status: z.number().nullish(),
   error: z.object({
-    type: z.string(),
-    code: z.string(),
+    type: z.string().nullish(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),
 });
 
-// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
-// code/message/param fields.
+// The Responses streaming event reference also defines an older/top-level
+// code/message/param shape. Keep accepting it for the existing SSE path.
 const openaiResponsesErrorChunkSchema = z.object({
   type: z.literal('error'),
-  sequence_number: z.number(),
+  sequence_number: z.number().nullish(),
+  status: z.number().nullish(),
   code: z.string().nullish(),
   message: z.string(),
   param: z.string().nullish(),
@@ -528,6 +530,10 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
+          // WebSocket continuation sends this value as previous_response_id on
+          // the next response.create event over the same connection. Keep it
+          // nullish here so the existing SSE parser is not made more strict.
+          id: z.string().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: z.object({
             input_tokens: z.number(),

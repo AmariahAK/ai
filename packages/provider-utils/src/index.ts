@@ -100,6 +100,9 @@ export {
   readWebSocketMessageText,
   toWebSocketUrl,
   type WebSocketConstructor,
+  type WebSocketFactory,
+  type WebSocketFactoryOptions,
+  type WebSocketFactorySocket,
   type WebSocketLike,
 } from './websocket';
 export { withUserAgentSuffix } from './with-user-agent-suffix';

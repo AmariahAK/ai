@@ -11,12 +11,14 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  getWebSocketConstructor,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
   type WebSocketConstructor,
+  type WebSocketFactory,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
@@ -123,7 +125,15 @@ export interface OpenAIProvider extends ProviderV4 {
   tools: typeof openaiTools;
 }
 
-export interface OpenAIProviderSettings {
+// The event types are inferred from a custom WebSocket factory. Keeping them
+// generic lets libraries such as `ws` use their actual callback types without
+// weakening WebSocketLike or requiring a consumer-side type assertion.
+export interface OpenAIProviderSettings<
+  OPEN_EVENT = Event,
+  MESSAGE_EVENT extends { data: unknown } = MessageEvent,
+  ERROR_EVENT = ErrorEvent,
+  CLOSE_EVENT = CloseEvent,
+> {
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -161,17 +171,31 @@ export interface OpenAIProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Custom WebSocket implementation. This is useful for testing or for
-   * runtimes that need a WebSocket constructor with header support.
+   * Custom WebSocket implementation used by streaming transcription and the
+   * Responses API WebSocket transport. Accepts the existing constructor shape
+   * or a non-constructible factory (typically an arrow function) that adapts
+   * another WebSocket client.
    */
-  webSocket?: WebSocketConstructor;
+  webSocket?:
+    | WebSocketConstructor
+    | WebSocketFactory<OPEN_EVENT, MESSAGE_EVENT, ERROR_EVENT, CLOSE_EVENT>;
 }
 
 /**
  * Create an OpenAI provider instance.
  */
-export function createOpenAI(
-  options: OpenAIProviderSettings = {},
+export function createOpenAI<
+  OPEN_EVENT = Event,
+  MESSAGE_EVENT extends { data: unknown } = MessageEvent,
+  ERROR_EVENT = ErrorEvent,
+  CLOSE_EVENT = CloseEvent,
+>(
+  options: OpenAIProviderSettings<
+    OPEN_EVENT,
+    MESSAGE_EVENT,
+    ERROR_EVENT,
+    CLOSE_EVENT
+  > = {},
 ): OpenAIProvider {
   const baseURL =
     withoutTrailingSlash(
@@ -182,6 +206,10 @@ export function createOpenAI(
     ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
+  const webSocket =
+    options.webSocket == null
+      ? undefined
+      : getWebSocketConstructor(options.webSocket);
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -236,7 +264,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      webSocket: options.webSocket,
+      webSocket,
     });
 
   const createSpeechModel = (modelId: OpenAISpeechModelId) =>
@@ -279,6 +307,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket,
       // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['file-'],
     });

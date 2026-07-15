@@ -24,6 +24,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
+  validateTypes,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type InferSchema,
@@ -32,7 +33,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -71,6 +75,11 @@ import {
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  OpenAIResponsesWebSocketManager,
+  type OpenAIResponsesWebSocketContinuation,
+  type OpenAIResponsesWebSocketResult,
+} from './openai-responses-websocket';
 import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
@@ -104,12 +113,77 @@ function extractApprovalRequestIdToToolCallIdMapping(
   return mapping;
 }
 
+/**
+ * Finds the tool-result-only suffix that can be sent as incremental WebSocket
+ * input for the next response in the same tool loop.
+ *
+ * AI SDK calls the language model once per step and passes the full accumulated
+ * prompt each time. OpenAI WebSocket continuation instead expects only the new
+ * input items together with the previous response ID. We therefore reuse the
+ * socket only when the prompt has the exact shape we can prove is a continuation:
+ * an assistant tool call followed exclusively by results for that call. Any
+ * other shape returns undefined and starts a new socket with the full prompt.
+ */
+function extractWebSocketToolContinuation(
+  prompt: LanguageModelV4Prompt,
+):
+  | { toolCallIds: string[]; toolResultPrompt: LanguageModelV4Prompt }
+  | undefined {
+  for (let index = prompt.length - 1; index >= 0; index--) {
+    const message = prompt[index];
+    if (message.role !== 'assistant') continue;
+
+    const pendingToolCallIds = new Set<string>();
+    for (const part of message.content) {
+      if (part.type === 'tool-call' && !part.providerExecuted) {
+        pendingToolCallIds.add(part.toolCallId);
+      }
+    }
+    if (pendingToolCallIds.size === 0) continue;
+
+    const toolResultPrompt = prompt.slice(index + 1);
+    if (
+      toolResultPrompt.length === 0 ||
+      toolResultPrompt.some(message => message.role !== 'tool')
+    ) {
+      return undefined;
+    }
+
+    const toolCallIds: string[] = [];
+    for (const toolMessage of toolResultPrompt) {
+      if (toolMessage.role !== 'tool') return undefined;
+
+      for (const part of toolMessage.content) {
+        if (
+          part.type !== 'tool-result' ||
+          !pendingToolCallIds.has(part.toolCallId)
+        ) {
+          return undefined;
+        }
+        toolCallIds.push(part.toolCallId);
+      }
+    }
+
+    return toolCallIds.length === 0
+      ? undefined
+      : {
+          toolCallIds: [...new Set(toolCallIds)],
+          toolResultPrompt,
+        };
+  }
+
+  return undefined;
+}
+
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIResponsesModelId;
 
   private readonly config: OpenAIConfig;
+  private responsesWebSocketManager:
+    | OpenAIResponsesWebSocketManager
+    | undefined;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
     return serializeModelOptions({
@@ -137,6 +211,98 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  private getResponsesWebSocketManager(): OpenAIResponsesWebSocketManager {
+    return (this.responsesWebSocketManager ??=
+      new OpenAIResponsesWebSocketManager(this.config.webSocket));
+  }
+
+  /**
+   * WebSocket mode always returns response events, including for doGenerate.
+   * Buffer those events until the terminal response, then validate and return
+   * the same complete response object used by the existing HTTP JSON path.
+   */
+  private async generateResponseOverWebSocket({
+    url,
+    headers,
+    body,
+    abortSignal,
+    continuation,
+  }: {
+    url: string;
+    headers: Record<string, string | undefined>;
+    body: Record<string, unknown>;
+    abortSignal?: AbortSignal;
+    continuation?: OpenAIResponsesWebSocketContinuation;
+  }): Promise<{
+    responseHeaders: undefined;
+    value: InferSchema<typeof openaiResponsesResponseSchema>;
+    rawValue: unknown;
+    webSocketRequest: OpenAIResponsesWebSocketResult;
+  }> {
+    const request = await this.getResponsesWebSocketManager().request({
+      url,
+      headers,
+      body,
+      abortSignal,
+      continuation,
+    });
+    const reader = request.stream.getReader();
+
+    try {
+      // Delta events are irrelevant to doGenerate. Read until OpenAI sends the
+      // terminal event, whose `response` field is the complete Responses object.
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          throw new Error(
+            'OpenAI Responses WebSocket ended without a completed response.',
+          );
+        }
+        if (!value.success) throw value.error;
+
+        if (isErrorChunk(value.value) || isResponseFailedChunk(value.value)) {
+          // Match the APICallError behavior used by the existing SSE path.
+          throw createOpenAIStreamError({
+            frame: value.value,
+            url,
+            requestBodyValues: body,
+          });
+        }
+
+        if (isResponseFinishedChunk(value.value)) {
+          // ParseResult.rawValue retains fields that the lightweight streaming
+          // chunk schema does not need, so validate the full terminal response
+          // with the same schema used by the HTTP doGenerate path.
+          const rawFrame = value.rawValue;
+          if (
+            typeof rawFrame !== 'object' ||
+            rawFrame == null ||
+            !('response' in rawFrame)
+          ) {
+            throw new Error(
+              'OpenAI Responses WebSocket returned an invalid completed response.',
+            );
+          }
+
+          return {
+            responseHeaders: undefined,
+            value: await validateTypes({
+              value: rawFrame.response,
+              schema: openaiResponsesResponseSchema,
+            }),
+            rawValue: rawFrame.response,
+            webSocketRequest: request,
+          };
+        }
+      }
+    } catch (error) {
+      request.close();
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   private async getArgs({
@@ -245,8 +411,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
     });
 
-    const { input, warnings: inputWarnings } =
-      await convertToOpenAIResponsesInput({
+    // The full prompt and an incremental WebSocket tool-result suffix must use
+    // identical conversion settings. Keeping that conversion in one local
+    // function avoids the two paths drifting as options are added here.
+    const convertPrompt = (
+      prompt: LanguageModelV4Prompt,
+      hasPreviousResponseId: boolean,
+    ) =>
+      convertToOpenAIResponsesInput({
         prompt,
         toolNameMapping,
         systemMessageMode:
@@ -260,7 +432,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
         hasConversation: openaiOptions?.conversation != null,
-        hasPreviousResponseId: openaiOptions?.previousResponseId != null,
+        hasPreviousResponseId,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
@@ -270,7 +442,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : undefined,
       });
 
+    const { input, warnings: inputWarnings } = await convertPrompt(
+      prompt,
+      openaiOptions?.previousResponseId != null,
+    );
+
     warnings.push(...inputWarnings);
+
+    const toolContinuation =
+      openaiOptions?.transport === 'websocket'
+        ? extractWebSocketToolContinuation(prompt)
+        : undefined;
+    const webSocketContinuation =
+      toolContinuation == null
+        ? undefined
+        : {
+            toolCallIds: toolContinuation.toolCallIds,
+            input: (
+              await convertPrompt(toolContinuation.toolResultPrompt, true)
+            ).input,
+          };
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
@@ -494,6 +685,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      transport: openaiOptions?.transport ?? 'http',
+      webSocketContinuation,
     };
   }
 
@@ -507,6 +700,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      transport,
+      webSocketContinuation,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -516,30 +711,49 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
+    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const responseResult =
+      transport === 'websocket'
+        ? await this.generateResponseOverWebSocket({
+            url,
+            headers,
+            body,
+            abortSignal: options.abortSignal,
+            continuation: webSocketContinuation,
+          })
+        : {
+            ...(await postJsonToApi({
+              url,
+              headers,
+              body,
+              failedResponseHandler: openaiFailedResponseHandler,
+              successfulResponseHandler: createJsonResponseHandler(
+                openaiResponsesResponseSchema,
+              ),
+              abortSignal: options.abortSignal,
+              fetch: this.config.fetch,
+            })),
+            webSocketRequest: undefined,
+          };
+    const webSocketRequest = responseResult.webSocketRequest;
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await postJsonToApi({
-      url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiResponsesResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    } = responseResult;
 
     if (response.error) {
+      webSocketRequest?.close();
       throw new APICallError({
         message: response.error.message,
         url,
         requestBodyValues: body,
         statusCode: 400,
         responseHeaders,
-        responseBody: rawResponse as string,
+        responseBody:
+          typeof rawResponse === 'string'
+            ? rawResponse
+            : JSON.stringify(rawResponse),
         isRetryable: false,
       });
     }
@@ -1051,7 +1265,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const usage = response.usage!; // defined when there is no error
 
-    return {
+    const result = {
       content,
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
@@ -1072,6 +1286,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       providerMetadata,
       warnings,
     };
+
+    // A client tool call means generateText will invoke this model again with
+    // the tool result. Keep this request's socket only for that continuation;
+    // otherwise the model's turn is complete and the socket can close now.
+    const pendingClientToolCallIds: string[] = [];
+    for (const part of content) {
+      if (part.type === 'tool-call' && !part.providerExecuted) {
+        pendingClientToolCallIds.push(part.toolCallId);
+      }
+    }
+    webSocketRequest?.finish(pendingClientToolCallIds);
+    return result;
   }
 
   async doStream(
@@ -1085,6 +1311,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       store,
       providerOptionsName,
       isShellProviderExecuted,
+      transport,
+      webSocketContinuation,
     } = await this.getArgs(options);
 
     const url = this.config.url({
@@ -1092,20 +1320,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
     });
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
-      body: {
-        ...body,
-        stream: true,
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        openaiResponsesChunkSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    let responseHeaders: Record<string, string> | undefined;
+    let response: ReadableStream<ParseResult<OpenAIResponsesChunk>>;
+    let webSocketRequest: OpenAIResponsesWebSocketResult | undefined;
+
+    if (transport === 'websocket') {
+      // WebSocket responses are inherently event streams, so no `stream`
+      // request field is sent on this branch.
+      webSocketRequest = await this.getResponsesWebSocketManager().request({
+        url,
+        headers,
+        body,
+        abortSignal: options.abortSignal,
+        continuation: webSocketContinuation,
+      });
+      response = webSocketRequest.stream;
+    } else {
+      const httpResponse = await postJsonToApi({
+        url,
+        headers,
+        body: {
+          ...body,
+          stream: true,
+        },
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          openaiResponsesChunkSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+      responseHeaders = httpResponse.responseHeaders;
+      response = httpResponse.value;
+    }
 
     const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
       stream: response,
@@ -1182,7 +1430,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
-    const result = {
+    let result = {
       stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
@@ -2234,6 +2482,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    if (webSocketRequest != null) {
+      const request = webSocketRequest;
+      // streamText cannot decide whether the socket is needed again until the
+      // complete stream has revealed whether the model requested a client tool.
+      const pendingClientToolCallIds = new Set<string>();
+      let encounteredError = false;
+      result = {
+        ...result,
+        stream: result.stream.pipeThrough(
+          new TransformStream<
+            LanguageModelV4StreamPart,
+            LanguageModelV4StreamPart
+          >({
+            transform(part, controller) {
+              if (part.type === 'tool-call' && !part.providerExecuted) {
+                pendingClientToolCallIds.add(part.toolCallId);
+              } else if (part.type === 'error') {
+                encounteredError = true;
+              }
+              controller.enqueue(part);
+            },
+            flush() {
+              if (encounteredError) {
+                request.close();
+              } else {
+                request.finish([...pendingClientToolCallIds]);
+              }
+            },
+          }),
+        ),
+      };
+    }
 
     return result;
   }

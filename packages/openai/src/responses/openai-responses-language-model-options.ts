@@ -146,6 +146,14 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Transport used to communicate with the Responses API.
+       * WebSocket transport keeps one connection open across tool-call steps
+       * within a single AI SDK generation.
+       * Defaults to `http`.
+       */
+      transport: z.enum(['http', 'websocket']).optional(),
+
+      /**
        * The ID of the OpenAI Conversation to continue.
        * You must create a conversation first via the OpenAI API.
        * Cannot be used in conjunction with `previousResponseId`.

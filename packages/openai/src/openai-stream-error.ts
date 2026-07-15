@@ -4,6 +4,7 @@ import type { ParseResult } from '@ai-sdk/provider-utils';
 type StreamError = {
   message: string;
   code?: string | number | null;
+  status?: string | number | null;
   type?: string | null;
   frame: unknown;
 };
@@ -62,7 +63,12 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   }
 }
 
-function createOpenAIStreamError({
+/**
+ * Converts a Responses error event into the APICallError shape shared by the
+ * SSE and WebSocket paths. This is exported only for other modules inside the
+ * OpenAI package; it is not re-exported from the package entry point.
+ */
+export function createOpenAIStreamError({
   frame,
   url,
   requestBodyValues,
@@ -102,6 +108,7 @@ function parseStreamError(frame: unknown): StreamError | undefined {
       ? {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
+          status: getStringOrNumber(value.status),
           type: 'response.failed',
           frame,
         }
@@ -118,6 +125,9 @@ function parseStreamError(frame: unknown): StreamError | undefined {
     ? {
         message: error.message,
         code: getStringOrNumber(error.code),
+        // WebSocket errors expose the HTTP status on the outer event while
+        // keeping a semantic code such as previous_response_not_found inside.
+        status: getStringOrNumber(value.status),
         type: typeof error.type === 'string' ? error.type : undefined,
         frame,
       }
@@ -125,16 +135,11 @@ function parseStreamError(frame: unknown): StreamError | undefined {
 }
 
 function getStatusCode(error: StreamError): number {
-  if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
-    return error.code;
-  }
+  const explicitStatus = asHttpErrorStatusCode(error.status);
+  if (explicitStatus != null) return explicitStatus;
 
-  if (typeof error.code === 'string' && /^\d{3}$/.test(error.code)) {
-    const numericCode = Number(error.code);
-    if (isHttpErrorStatusCode(numericCode)) {
-      return numericCode;
-    }
-  }
+  const numericCode = asHttpErrorStatusCode(error.code);
+  if (numericCode != null) return numericCode;
 
   const discriminator = [error.code, error.type]
     .filter(value => typeof value === 'string' || typeof value === 'number')
@@ -178,4 +183,19 @@ function getStringOrNumber(value: unknown): string | number | undefined {
 
 function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
+}
+
+function asHttpErrorStatusCode(
+  value: string | number | null | undefined,
+): number | undefined {
+  const numericValue =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\d{3}$/.test(value)
+        ? Number(value)
+        : undefined;
+
+  return numericValue != null && isHttpErrorStatusCode(numericValue)
+    ? numericValue
+    : undefined;
 }
