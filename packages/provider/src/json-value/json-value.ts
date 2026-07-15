@@ -8,7 +8,8 @@ export type JSONValue =
   | number
   | boolean
   | JSONObject
-  | JSONArray;
+  | JSONArray
+  | readonly JSONValue[];
 
 export type JSONObject = {
   [key: string]: JSONValue | undefined;
