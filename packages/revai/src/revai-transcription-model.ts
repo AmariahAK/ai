@@ -188,6 +188,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
           path: `/speechtotext/v1/jobs/${jobId}`,
           modelId: this.modelId,
         }),
+        validateUrl: false,
         headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -222,6 +223,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: `/speechtotext/v1/jobs/${jobId}/transcript`,
         modelId: this.modelId,
       }),
+      validateUrl: false,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
