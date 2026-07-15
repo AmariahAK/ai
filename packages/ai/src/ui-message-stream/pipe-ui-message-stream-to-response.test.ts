@@ -9,7 +9,7 @@ describe('pipeUIMessageStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeUIMessageStreamToResponse({
+    await pipeUIMessageStreamToResponse({
       response: mockResponse,
       status: 200,
       statusText: 'OK',
@@ -22,9 +22,6 @@ describe('pipeUIMessageStreamToResponse', () => {
         { type: 'text-end', id: '1' },
       ]),
     });
-
-    // Wait for the stream to finish writing
-    await mockResponse.waitForEnd();
 
     // Verify response properties
     expect(mockResponse.statusCode).toBe(200);
@@ -65,16 +62,13 @@ describe('pipeUIMessageStreamToResponse', () => {
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeUIMessageStreamToResponse({
+    await pipeUIMessageStreamToResponse({
       response: mockResponse,
       status: 200,
       stream: convertArrayToReadableStream([
         { type: 'error', errorText: 'Custom error message' },
       ]),
     });
-
-    // Wait for the stream to finish writing
-    await mockResponse.waitForEnd();
 
     // Verify error handling using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();
@@ -93,7 +87,7 @@ describe('pipeUIMessageStreamToResponse', () => {
   it('can pipe a stream created by toUIMessageStream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeUIMessageStreamToResponse({
+    await pipeUIMessageStreamToResponse({
       response: mockResponse,
       stream: toUIMessageStream({
         stream: convertArrayToReadableStream([
@@ -105,8 +99,6 @@ describe('pipeUIMessageStreamToResponse', () => {
         sendStart: false,
       }),
     });
-
-    await mockResponse.waitForEnd();
 
     expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
       [

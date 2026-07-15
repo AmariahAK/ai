@@ -23,8 +23,8 @@ export function pipeTextStreamToResponse({
 }: {
   response: ServerResponse;
   stream: ReadableStream<string>;
-} & ResponseInit): void {
-  writeToServerResponse({
+} & ResponseInit): Promise<void> {
+  return writeToServerResponse({
     response,
     status,
     statusText,
