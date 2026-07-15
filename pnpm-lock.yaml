@@ -226,6 +226,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/ai-functions: {}
+
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
