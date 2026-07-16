@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 15652,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-15652-anthropic-json-tool-parallel.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-15652-anthropic-json-tool-parallel.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: disableParallelToolUse:false did not allow three parallel searchDocs calls with structuredOutputMode:jsonTool"
+  }
+}
