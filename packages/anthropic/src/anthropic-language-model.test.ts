@@ -804,6 +804,54 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should respect disableParallelToolUse=false with json tool structured output', async () => {
+      prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+      await provider('claude-sonnet-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get-weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'jsonTool',
+            disableParallelToolUse: false,
+          } satisfies AnthropicLanguageModelOptions,
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              weather: { type: 'string' },
+            },
+            required: ['weather'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).tool_choice)
+        .toMatchInlineSnapshot(`
+          {
+            "disable_parallel_tool_use": false,
+            "type": "any",
+          }
+        `);
+    });
+
     describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
