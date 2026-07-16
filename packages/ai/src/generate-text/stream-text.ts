@@ -942,6 +942,10 @@ class DefaultStreamTextResult<
 
   private tools: TOOLS | undefined;
 
+  private readonly hasTransforms: boolean;
+
+  private readonly outputWaiters = new Map<string, DelayedPromise<void>>();
+
   constructor({
     model,
     telemetry,
@@ -1072,6 +1076,7 @@ class DefaultStreamTextResult<
   }) {
     this.outputSpecification = output;
     this.tools = tools;
+    this.hasTransforms = transforms.length > 0;
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -2011,6 +2016,12 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
+            ...(transforms.length > 0
+              ? {
+                  createOutputAvailablePromise: (outputId: string) =>
+                    self.createOutputAvailablePromise(outputId),
+                }
+              : {}),
           });
 
           // Conditionally include request.body based on include settings.
@@ -2508,7 +2519,43 @@ class DefaultStreamTextResult<
   private teeStream() {
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
-    return stream1;
+
+    if (!this.hasTransforms) {
+      return stream1;
+    }
+
+    const self = this;
+
+    return stream1.pipeThrough(
+      new TransformStream<
+        EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+        EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+      >({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+
+          // Signal when all transformed deltas for this output part have
+          // reached the active result stream.
+          if (
+            chunk.part.type === 'text-end' ||
+            chunk.part.type === 'reasoning-end'
+          ) {
+            self.markOutputAvailable(`${chunk.part.type}:${chunk.part.id}`);
+          }
+        },
+      }),
+    );
+  }
+
+  private markOutputAvailable(outputId: string) {
+    this.outputWaiters.get(outputId)?.resolve();
+    this.outputWaiters.delete(outputId);
+  }
+
+  private createOutputAvailablePromise(outputId: string) {
+    const waiter = new DelayedPromise<void>();
+    this.outputWaiters.set(outputId, waiter);
+    return waiter.promise;
   }
 
   get textStream(): AsyncIterableStream<string> {

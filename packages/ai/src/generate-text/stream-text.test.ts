@@ -54,6 +54,7 @@ import {
 } from '../types/usage';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
+import { smoothStream } from './smooth-stream';
 import { streamText } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type {
@@ -155,6 +156,68 @@ function createTestModel({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
+
+describe('transformed stream tool execution', () => {
+  it('should execute tools after preceding transformed text is emitted', async () => {
+    const events: string[] = [];
+
+    const result = streamText({
+      model: createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          {
+            type: 'text-delta',
+            id: '1',
+            delta: 'I will read the file. ',
+          },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: `{ "value": "value" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            events.push('tool executed');
+            return 'result';
+          },
+        }),
+      },
+      experimental_transform: smoothStream({
+        chunking: 'word',
+        _internal: {
+          delay: () => delay(1),
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    for await (const text of result.textStream) {
+      events.push(text);
+    }
+
+    expect(events).toMatchInlineSnapshot(`
+      [
+        "I ",
+        "will ",
+        "read ",
+        "the ",
+        "file. ",
+        "tool executed",
+      ]
+    `);
+  });
+});
 
 const modelWithSources = new MockLanguageModelV4({
   doStream: async () => ({

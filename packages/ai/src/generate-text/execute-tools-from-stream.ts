@@ -51,6 +51,7 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  createOutputAvailablePromise,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -70,8 +71,13 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  createOutputAvailablePromise?: (outputId: string) => Promise<void>;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
-  const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  const toolCallsToExecute: Array<{
+    toolCall: TypedToolCall<TOOLS>;
+    outputAvailable: Promise<void> | undefined;
+  }> = [];
+  let precedingOutputAvailable: Promise<void> | undefined;
 
   // forward stream
   return stream.pipeThrough(
@@ -85,6 +91,12 @@ export function executeToolsFromStream<
           ExecuteToolsStreamPart<TOOLS>
         >,
       ) {
+        if (chunk.type === 'text-end' || chunk.type === 'reasoning-end') {
+          precedingOutputAvailable = createOutputAvailablePromise?.(
+            `${chunk.type}:${chunk.id}`,
+          );
+        }
+
         // immediately forward all chunks
         controller.enqueue(chunk);
 
@@ -119,7 +131,10 @@ export function executeToolsFromStream<
             // directly (when not provider-executed).
             if (toolApprovalStatus.type === 'not-applicable') {
               if (tool.execute != null && chunk.providerExecuted !== true) {
-                toolCallsToExecute.push(chunk);
+                toolCallsToExecute.push({
+                  toolCall: chunk,
+                  outputAvailable: precedingOutputAvailable,
+                });
               }
 
               return;
@@ -190,15 +205,24 @@ export function executeToolsFromStream<
             // approved tool calls continue to execution (when not
             // provider-executed):
             if (tool.execute != null && chunk.providerExecuted !== true) {
-              toolCallsToExecute.push(chunk);
+              toolCallsToExecute.push({
+                toolCall: chunk,
+                outputAvailable: precedingOutputAvailable,
+              });
             }
 
             return;
           }
 
           case 'model-call-end': {
+            // Wait until transformed output preceding the tool calls has reached
+            // the active result stream before running tools with side effects.
             await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+              toolCallsToExecute.map(({ outputAvailable }) => outputAvailable),
+            );
+
+            await Promise.all(
+              toolCallsToExecute.map(async ({ toolCall }) => {
                 try {
                   // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
                   // because we want to process the next chunk as soon as possible.
