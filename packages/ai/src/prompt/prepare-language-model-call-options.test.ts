@@ -1,6 +1,7 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareLanguageModelCallOptions } from './prepare-language-model-call-options';
 import {
+  getFirstChunkTimeoutMs,
   getToolTimeoutMs,
   getTotalTimeoutMs,
   getStepTimeoutMs,
@@ -279,6 +280,20 @@ describe('timeout helpers (from request-options)', () => {
 
     it('should return chunkMs from an object', () => {
       expect(getChunkTimeoutMs({ chunkMs: 2000 })).toBe(2000);
+    });
+  });
+
+  describe('getFirstChunkTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getFirstChunkTimeoutMs(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when timeout is a number', () => {
+      expect(getFirstChunkTimeoutMs(5000)).toBeUndefined();
+    });
+
+    it('should return firstChunkMs from an object', () => {
+      expect(getFirstChunkTimeoutMs({ firstChunkMs: 1500 })).toBe(1500);
     });
   });
 });

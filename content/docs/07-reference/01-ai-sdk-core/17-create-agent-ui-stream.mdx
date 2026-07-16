@@ -68,10 +68,10 @@ export async function* streamAgent(
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isRequired: false,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or per-tool properties. firstChunkMs is re-armed for each model-call step and waits for parsed content-bearing output, while chunkMs governs gaps after output begins. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',

@@ -34,6 +34,7 @@ import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -157,28 +158,29 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
-// chunk types that count as model output; used to distinguish empty
-// incomplete streams from incomplete streams with partial results.
+// chunk types that count as content-bearing model output; used for first
+// content and chunk timeouts and to distinguish empty incomplete streams from
+// incomplete streams with partial results.
 // exhaustive so that new chunk types must be classified explicitly:
 const isOutputChunkType = {
   file: true,
-  custom: true,
-  source: true,
-  'text-start': true,
-  'text-end': true,
+  custom: false,
+  source: false,
+  'text-start': false,
+  'text-end': false,
   'text-delta': true,
-  'reasoning-start': true,
-  'reasoning-end': true,
+  'reasoning-start': false,
+  'reasoning-end': false,
   'reasoning-delta': true,
   'reasoning-file': true,
-  'tool-input-start': true,
-  'tool-input-end': true,
+  'tool-input-start': false,
+  'tool-input-end': false,
   'tool-input-delta': true,
-  'tool-approval-request': true,
-  'tool-approval-response': true,
+  'tool-approval-request': false,
+  'tool-approval-response': false,
   'tool-call': true,
-  'tool-result': true,
-  'tool-error': true,
+  'tool-result': false,
+  'tool-error': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -299,7 +301,7 @@ export type StreamTextOnAbortCallback<
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
- * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
+ * @param timeout - Optional timeout configuration. Streaming timeouts can separately limit total duration, each step, time to first content-bearing output, and gaps between later output chunks.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
@@ -716,9 +718,12 @@ export function streamText<
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const firstChunkTimeoutMs = getFirstChunkTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
+  const firstChunkAbortController =
+    firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
   const resolvedOnStart = onStart ?? experimental_onStart;
@@ -742,10 +747,13 @@ export function streamText<
       abortSignal,
       totalTimeoutMs,
       stepAbortController?.signal,
+      firstChunkAbortController?.signal,
       chunkAbortController?.signal,
     ),
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -951,6 +959,8 @@ class DefaultStreamTextResult<
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -1000,6 +1010,8 @@ class DefaultStreamTextResult<
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
+    firstChunkTimeoutMs: number | undefined;
+    firstChunkAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
@@ -1764,7 +1776,32 @@ class DefaultStreamTextResult<
           timeoutMs: stepTimeoutMs,
         });
 
-        // Set up chunk timeout tracking (will be reset on each chunk)
+        // The first-content timeout is armed after the provider response stream
+        // starts. It is cleared by the first content-bearing output chunk.
+        let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
+
+        function startFirstChunkTimeout() {
+          if (abortSignal?.aborted) {
+            return;
+          }
+
+          firstChunkTimeoutId = setAbortTimeout({
+            abortController: firstChunkAbortController,
+            label: 'First chunk',
+            timeoutMs: firstChunkTimeoutMs,
+          });
+        }
+
+        function clearFirstChunkTimeout() {
+          if (firstChunkTimeoutId != null) {
+            clearTimeout(firstChunkTimeoutId);
+            firstChunkTimeoutId = undefined;
+          }
+        }
+
+        // Set up chunk timeout tracking. It is armed by the first
+        // content-bearing output chunk and reset by subsequent output chunks.
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
@@ -1792,12 +1829,21 @@ class DefaultStreamTextResult<
           }
         }
 
+        function clearStepTimeouts() {
+          clearStepTimeout();
+          clearFirstChunkTimeout();
+          clearChunkTimeout();
+          abortSignal?.removeEventListener('abort', clearStepTimeouts);
+        }
+
         // The step's stream is registered lazily and consumed long after this
         // function returns, so the step timer must stay armed past setup. When
-        // the merged abort signal fires (any step/chunk/total timeout or caller
-        // abort), drop both step-scoped timers so neither outlives the step.
-        abortSignal?.addEventListener('abort', clearStepTimeout);
-        abortSignal?.addEventListener('abort', clearChunkTimeout);
+        // the merged abort signal fires (any step/first-chunk/chunk/total
+        // timeout or caller abort), drop all step-scoped timers so none
+        // outlives the step.
+        abortSignal?.addEventListener('abort', clearStepTimeouts, {
+          once: true,
+        });
 
         try {
           stepFinish = new DelayedPromise<void>();
@@ -1960,6 +2006,8 @@ class DefaultStreamTextResult<
             ),
           );
 
+          startFirstChunkTimeout();
+
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
               stream: languageModelStream,
@@ -2069,11 +2117,30 @@ class DefaultStreamTextResult<
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  resetChunkTimeout();
-
                   if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
+                  }
+
+                  const chunkType = chunk.type;
+                  const isOutputChunk =
+                    isOutputChunkType[chunkType] &&
+                    !(
+                      (chunkType === 'text-delta' ||
+                        chunkType === 'reasoning-delta') &&
+                      chunk.text.length === 0
+                    ) &&
+                    !(
+                      chunkType === 'tool-input-delta' &&
+                      chunk.delta.length === 0
+                    );
+
+                  if (isOutputChunk) {
+                    if (!hasReceivedOutputChunk) {
+                      clearFirstChunkTimeout();
+                    }
+                    hasReceivedOutputChunk = true;
+                    resetChunkTimeout();
                   }
 
                   if (stepFirstChunk) {
@@ -2085,12 +2152,6 @@ class DefaultStreamTextResult<
                       request: stepRequest,
                       warnings: warnings ?? [],
                     });
-                  }
-
-                  const chunkType = chunk.type;
-
-                  if (isOutputChunkType[chunkType]) {
-                    hasReceivedOutputChunk = true;
                   }
 
                   switch (chunkType) {
@@ -2210,8 +2271,7 @@ class DefaultStreamTextResult<
                       }),
                     });
 
-                    clearStepTimeout();
-                    clearChunkTimeout();
+                    clearStepTimeouts();
                     self.closeStream();
                     return;
                   }
@@ -2291,9 +2351,8 @@ class DefaultStreamTextResult<
                     }
                   }
 
-                  // Clear the step and chunk timeouts before the next step is started
-                  clearStepTimeout();
-                  clearChunkTimeout();
+                  // Clear the step timeouts before the next step is started.
+                  clearStepTimeouts();
 
                   if (
                     // Continue if:
@@ -2342,8 +2401,7 @@ class DefaultStreamTextResult<
         } catch (error) {
           // Setup failed before the stream was registered, so neither the
           // stream's flush nor an abort will clear the timers — clear them here.
-          clearStepTimeout();
-          clearChunkTimeout();
+          clearStepTimeouts();
           throw error;
         }
       }

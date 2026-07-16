@@ -8,7 +8,10 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Write a short poem about the ocean.',
-    timeout: { chunkMs: 500 },
+    timeout: {
+      firstChunkMs: 10000, // first content-bearing output for each step
+      chunkMs: 5000, // gaps between content-bearing output chunks
+    },
   });
 
   printFullStream({ result });

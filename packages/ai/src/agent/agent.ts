@@ -70,7 +70,8 @@ export type AgentCallParameters<
     abortSignal?: AbortSignal;
 
     /**
-     * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
+     * Timeout configuration. Streaming agents can separately limit time to
+     * first content-bearing output and gaps between later output chunks.
      */
     timeout?: TimeoutConfiguration<TOOLS>;
 

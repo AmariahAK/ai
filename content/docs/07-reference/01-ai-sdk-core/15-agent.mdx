@@ -63,11 +63,19 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      */
     abortSignal?: AbortSignal;
     /**
-     * Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property.
-     * The call will be aborted if it takes longer than the specified timeout.
-     * Can be used alongside abortSignal.
+     * Timeout in milliseconds. Streaming agents can also configure per-step
+     * first-content and chunk timeouts. Can be used alongside abortSignal.
      */
-    timeout?: number | { totalMs?: number };
+    timeout?:
+      | number
+      | {
+          totalMs?: number;
+          stepMs?: number;
+          firstChunkMs?: number;
+          chunkMs?: number;
+          toolMs?: number;
+          tools?: Partial<Record<`${string}Ms`, number>>;
+        };
     /**
      * Experimental sandbox environment that is passed through to tool execution.
      */
@@ -180,7 +188,7 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `messages` (optional): An array of `ModelMessage` objects (mutually exclusive with `prompt`)
 - `options` (optional): Additional call options when `CALL_OPTIONS` is not `never`
 - `abortSignal` (optional): An `AbortSignal` to cancel the operation
-- `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
+- `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with `totalMs`, `stepMs`, `firstChunkMs`, `chunkMs`, `toolMs`, and per-tool timeout properties. For streaming agents, `firstChunkMs` is re-armed for each model-call step and waits for parsed content-bearing output, while `chunkMs` governs gaps after output begins. Can be used alongside `abortSignal`.
 - `experimental_sandbox` (optional): An experimental sandbox environment forwarded to tool execution.
 - `onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls.
 - `onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called.
