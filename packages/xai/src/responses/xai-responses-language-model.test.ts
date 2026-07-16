@@ -824,6 +824,105 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should let the model read an image returned by a function tool', async () => {
+        const fixture = JSON.parse(
+          fs.readFileSync(
+            'src/responses/__fixtures__/issue-17381-tool-image-result.live.json',
+            'utf8',
+          ),
+        );
+        let sentToolOutput: unknown;
+        const model = new XaiResponsesLanguageModel('grok-4.5', {
+          provider: 'xai.responses',
+          baseURL: 'https://api.x.ai/v1',
+          headers: () => ({ Authorization: 'Bearer test-key' }),
+          generateId: mockId(),
+          fetch: async (_input, init) => {
+            const requestBody =
+              typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+            sentToolOutput = requestBody.input?.find(
+              (item: any) => item.type === 'function_call_output',
+            )?.output;
+            const hasInputImage =
+              Array.isArray(sentToolOutput) &&
+              sentToolOutput.some(
+                (item: any) =>
+                  item.type === 'input_image' &&
+                  item.image_url ===
+                    `data:image/png;base64,${fixture.imageBase64}`,
+              );
+
+            return Response.json(
+              hasInputImage ? fixture.correctedResponse : fixture.responses[1],
+            );
+          },
+        });
+
+        const result = await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Read the word returned by the image tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'getFigure',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'getFigure',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'Read the single uppercase word in the attached image.',
+                      },
+                      {
+                        type: 'image-data',
+                        data: fixture.imageBase64,
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'text',
+          text: 'BANANA',
+        });
+        expect(sentToolOutput).toEqual([
+          {
+            type: 'input_text',
+            text: 'Read the single uppercase word in the attached image.',
+          },
+          {
+            type: 'input_image',
+            image_url: `data:image/png;base64,${fixture.imageBase64}`,
+          },
+        ]);
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',
