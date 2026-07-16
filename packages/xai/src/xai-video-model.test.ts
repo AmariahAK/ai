@@ -1524,11 +1524,13 @@ describe('XaiVideoModel', () => {
           providerOptions,
         });
 
-        expect(result.videos[0]).toStrictEqual({
-          type: 'url',
-          url: liveDoneStatusResponse.video.url,
-          mediaType: 'video/mp4',
-        });
+        expect(result.videos[0]).toMatchInlineSnapshot(`
+          {
+            "mediaType": "video/mp4",
+            "type": "url",
+            "url": "https://vidgen.x.ai/xai-vidgen-bucket/xai-video-52a79ffe-80a5-9cd4-8ece-a8a24d6f267f.mp4",
+          }
+        `);
         expect(server.calls).toHaveLength(3);
       },
     );

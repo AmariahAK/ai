@@ -5,14 +5,17 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  cancelResponseBody,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
+  extractResponseHeaders,
   type FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
@@ -438,9 +441,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         await getFromApi({
           url: `${baseURL}/videos/${requestId}`,
           headers: combineHeaders(this.config.headers(), options.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiVideoStatusResponseSchema,
-          ),
+          successfulResponseHandler: xaiVideoStatusResponseHandler,
           failedResponseHandler: xaiFailedResponseHandler,
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
@@ -546,3 +547,24 @@ const xaiVideoStatusResponseSchema = z.object({
     })
     .nullish(),
 });
+
+const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
+  xaiVideoStatusResponseSchema,
+);
+
+const xaiVideoStatusResponseHandler: ResponseHandler<
+  z.infer<typeof xaiVideoStatusResponseSchema>
+> = async options => {
+  const { response } = options;
+
+  if (response.status === 202) {
+    await cancelResponseBody(response);
+
+    return {
+      value: { status: 'pending' },
+      responseHeaders: extractResponseHeaders(response),
+    };
+  }
+
+  return xaiVideoStatusJsonResponseHandler(options);
+};
