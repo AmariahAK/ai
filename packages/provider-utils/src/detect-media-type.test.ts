@@ -397,6 +397,34 @@ describe('detectMediaType signature matching', () => {
         }),
       ).toBe('audio/mpeg');
     });
+
+    // An ID3 tag larger than the bounded scan prefix is not decoded, so
+    // detection cost stays O(1) in the input size rather than O(N).
+    it('does not scan past the bounded prefix for oversized ID3 tags', () => {
+      const tagBody = 256 * 1024; // > ID3_MAX_SCAN_BYTES (128 KB)
+      const oversized = new Uint8Array(10 + tagBody + 4);
+      oversized[0] = 0x49; // 'I'
+      oversized[1] = 0x44; // 'D'
+      oversized[2] = 0x33; // '3'
+      // synchsafe size = tagBody
+      oversized[6] = (tagBody >> 21) & 0x7f;
+      oversized[7] = (tagBody >> 14) & 0x7f;
+      oversized[8] = (tagBody >> 7) & 0x7f;
+      oversized[9] = tagBody & 0x7f;
+      // MP3 frame header placed after the tag (beyond the scan bound)
+      oversized[10 + tagBody] = 0xff;
+      oversized[10 + tagBody + 1] = 0xfb;
+
+      expect(
+        detectMediaType({ data: oversized, topLevelType: 'audio' }),
+      ).toBeUndefined();
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(oversized),
+          topLevelType: 'audio',
+        }),
+      ).toBeUndefined();
+    });
   });
 
   describe('WAV', () => {
