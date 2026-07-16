@@ -659,6 +659,55 @@ jobs:
             ${{ steps.cherry-pick.outputs.git-output }}
             ```
 
+      - name: Label linked issues for the backported version
+        if: steps.check-existing.outputs.existing-pr || steps.create-pr.outputs.backport-pr-url
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr-number }}
+          BASE_REF: ${{ needs.resolve-pr.outputs.base-ref }}
+        run: |
+          set -euo pipefail
+
+          OWNER="${REPO%%/*}"
+          NAME="${REPO#*/}"
+
+          case "$BASE_REF" in
+            main) ISSUE_LABEL="backported-v6" ;;
+            release-v6.0) ISSUE_LABEL="backported-v5" ;;
+            *)
+              echo "::warning::No backported issue label is configured for base branch ${BASE_REF}"
+              exit 0
+              ;;
+          esac
+
+          gh api graphql \
+            -f query='
+              query($owner: String!, $name: String!, $number: Int!) {
+                repository(owner: $owner, name: $name) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 100) {
+                      nodes {
+                        number
+                        repository {
+                          nameWithOwner
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' \
+            -f owner="$OWNER" \
+            -f name="$NAME" \
+            -F number="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | [.repository.nameWithOwner, .number] | @tsv' |
+            while IFS=$'\t' read -r ISSUE_REPO ISSUE_NUMBER; do
+              if [ "$ISSUE_REPO" = "$REPO" ]; then
+                gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "$ISSUE_LABEL"
+              fi
+            done
+
       - name: Remove backport label from original PR
         if: '!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url'
         run: |
