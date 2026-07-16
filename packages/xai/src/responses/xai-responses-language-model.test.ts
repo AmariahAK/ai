@@ -1026,6 +1026,76 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should send image data in function call output', async () => {
+        prepareJsonFixtureResponse('issue-17381-tool-result-image');
+
+        const result = await createModel('grok-4.5').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Read the tool image.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'The requested image is attached.',
+                      },
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'data',
+                          data: Buffer.from([0, 1, 2, 3]),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'text',
+          text: 'ZXQ-731',
+        });
+        expect((await server.calls[0].requestBodyJson).input).toContainEqual({
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'The requested image is attached.',
+            },
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+            },
+          ],
+        });
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',

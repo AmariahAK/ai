@@ -420,6 +420,57 @@ describe('convertToXaiResponsesInput', () => {
         ]
       `);
     });
+
+    it('should preserve image URLs in content output', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'inspectImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The requested image is attached.',
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'The requested image is attached.',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('multi-turn conversations', () => {
