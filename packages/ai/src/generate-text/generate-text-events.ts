@@ -56,7 +56,7 @@ export type GenerateTextStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 

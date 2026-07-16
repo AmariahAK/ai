@@ -34,6 +34,7 @@ import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -164,15 +165,15 @@ const isOutputChunkType = {
   file: true,
   custom: true,
   source: true,
-  'text-start': true,
-  'text-end': true,
+  'text-start': false,
+  'text-end': false,
   'text-delta': true,
-  'reasoning-start': true,
-  'reasoning-end': true,
+  'reasoning-start': false,
+  'reasoning-end': false,
   'reasoning-delta': true,
   'reasoning-file': true,
-  'tool-input-start': true,
-  'tool-input-end': true,
+  'tool-input-start': false,
+  'tool-input-end': false,
   'tool-input-delta': true,
   'tool-approval-request': true,
   'tool-approval-response': true,
@@ -186,6 +187,22 @@ const isOutputChunkType = {
   error: false,
   raw: false,
 } as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
+
+function isOutputChunk(chunk: ExecuteToolsStreamPart): boolean {
+  if (!isOutputChunkType[chunk.type]) {
+    return false;
+  }
+
+  switch (chunk.type) {
+    case 'text-delta':
+    case 'reasoning-delta':
+      return chunk.text.length > 0;
+    case 'tool-input-delta':
+      return chunk.delta.length > 0;
+    default:
+      return true;
+  }
+}
 
 export type StreamTextInclude = {
   /**
@@ -716,11 +733,14 @@ export function streamText<
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const firstChunkTimeoutMs = getFirstChunkTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
+  const firstChunkAbortController =
+    firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
   const resolvedOnLanguageModelCallStart =
@@ -742,10 +762,13 @@ export function streamText<
       abortSignal,
       totalTimeoutMs,
       stepAbortController?.signal,
+      firstChunkAbortController?.signal,
       chunkAbortController?.signal,
     ),
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -951,6 +974,8 @@ class DefaultStreamTextResult<
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -1000,6 +1025,8 @@ class DefaultStreamTextResult<
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
+    firstChunkTimeoutMs: number | undefined;
+    firstChunkAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
@@ -1764,9 +1791,32 @@ class DefaultStreamTextResult<
           timeoutMs: stepTimeoutMs,
         });
 
-        // Set up chunk timeout tracking (will be reset on each chunk)
+        // Set up first-output and chunk timeout tracking. The first-output
+        // timeout is armed after doStream returns; chunkMs starts with the
+        // first content-bearing output and governs subsequent output gaps.
+        let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
+
+        function armFirstChunkTimeout() {
+          if (abortSignal?.aborted) {
+            return;
+          }
+          firstChunkTimeoutId = setAbortTimeout({
+            abortController: firstChunkAbortController,
+            label: 'First chunk',
+            timeoutMs: firstChunkTimeoutMs,
+          });
+        }
+
+        function clearFirstChunkTimeout() {
+          if (firstChunkTimeoutId != null) {
+            clearTimeout(firstChunkTimeoutId);
+            firstChunkTimeoutId = undefined;
+          }
+          abortSignal?.removeEventListener('abort', clearFirstChunkTimeout);
+        }
 
         function resetChunkTimeout() {
           if (chunkTimeoutId != null) {
@@ -1784,19 +1834,22 @@ class DefaultStreamTextResult<
             clearTimeout(chunkTimeoutId);
             chunkTimeoutId = undefined;
           }
+          abortSignal?.removeEventListener('abort', clearChunkTimeout);
         }
 
         function clearStepTimeout() {
           if (stepTimeoutId != null) {
             clearTimeout(stepTimeoutId);
           }
+          abortSignal?.removeEventListener('abort', clearStepTimeout);
         }
 
         // The step's stream is registered lazily and consumed long after this
         // function returns, so the step timer must stay armed past setup. When
         // the merged abort signal fires (any step/chunk/total timeout or caller
-        // abort), drop both step-scoped timers so neither outlives the step.
+        // abort), drop all step-scoped timers so none outlive the step.
         abortSignal?.addEventListener('abort', clearStepTimeout);
+        abortSignal?.addEventListener('abort', clearFirstChunkTimeout);
         abortSignal?.addEventListener('abort', clearChunkTimeout);
 
         try {
@@ -1960,6 +2013,10 @@ class DefaultStreamTextResult<
             ),
           );
 
+          // The provider has returned its response stream. Start the semantic
+          // first-output deadline before consuming any parsed stream parts.
+          armFirstChunkTimeout();
+
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
               stream: languageModelStream,
@@ -2069,8 +2126,6 @@ class DefaultStreamTextResult<
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  resetChunkTimeout();
-
                   if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
@@ -2089,8 +2144,14 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
 
-                  if (isOutputChunkType[chunkType]) {
+                  if (isOutputChunk(chunk)) {
+                    // Clear before forwarding so the timeout cannot win a race
+                    // after generated output has become visible.
+                    if (!hasReceivedOutputChunk) {
+                      clearFirstChunkTimeout();
+                    }
                     hasReceivedOutputChunk = true;
+                    resetChunkTimeout();
                   }
 
                   switch (chunkType) {
@@ -2211,6 +2272,7 @@ class DefaultStreamTextResult<
                     });
 
                     clearStepTimeout();
+                    clearFirstChunkTimeout();
                     clearChunkTimeout();
                     self.closeStream();
                     return;
@@ -2291,8 +2353,9 @@ class DefaultStreamTextResult<
                     }
                   }
 
-                  // Clear the step and chunk timeouts before the next step is started
+                  // Clear step-scoped timeouts before the next step is started.
                   clearStepTimeout();
+                  clearFirstChunkTimeout();
                   clearChunkTimeout();
 
                   if (
@@ -2343,6 +2406,7 @@ class DefaultStreamTextResult<
           // Setup failed before the stream was registered, so neither the
           // stream's flush nor an abort will clear the timers — clear them here.
           clearStepTimeout();
+          clearFirstChunkTimeout();
           clearChunkTimeout();
           throw error;
         }

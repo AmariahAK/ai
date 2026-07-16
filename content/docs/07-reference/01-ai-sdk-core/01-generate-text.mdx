@@ -1107,9 +1107,9 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
               description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs, chunkMs. firstChunkMs and chunkMs apply to streaming generations.',
             },
             {
               name: 'headers',
@@ -1227,9 +1227,9 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
               description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs, chunkMs. firstChunkMs and chunkMs apply to streaming generations.',
             },
             {
               name: 'headers',
