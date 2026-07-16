@@ -1,7 +1,4 @@
-import {
-  createTextDecoderStream,
-  type Experimental_SandboxProcess,
-} from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 
 const DEFAULT_TAIL_LIMIT = 20;
 
@@ -148,7 +145,14 @@ export async function forwardBridgeProcessStream({
   tailLimit?: number;
 }): Promise<void> {
   try {
-    const reader = stream.pipeThrough(createTextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(
+        new TextDecoderStream() as TransformStream<
+          AllowSharedBufferSource,
+          string
+        >,
+      )
+      .getReader();
     const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();

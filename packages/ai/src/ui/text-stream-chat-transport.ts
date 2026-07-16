@@ -1,4 +1,3 @@
-import { createTextDecoderStream } from '@ai-sdk/provider-utils';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
@@ -18,7 +17,12 @@ export class TextStreamChatTransport<
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
   ): ReadableStream<UIMessageChunk> {
     return transformTextToUiMessageStream({
-      stream: stream.pipeThrough(createTextDecoderStream()),
+      stream: stream.pipeThrough(
+        new TextDecoderStream() as TransformStream<
+          AllowSharedBufferSource,
+          string
+        >,
+      ),
     });
   }
 }

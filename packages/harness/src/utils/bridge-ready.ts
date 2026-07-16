@@ -1,5 +1,4 @@
 import {
-  createTextDecoderStream,
   safeParseJSON,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession,
@@ -80,7 +79,14 @@ export async function waitForBridgeReady({
   createTimeoutError,
   createExitError,
 }: WaitForBridgeReadyOptions): Promise<WaitForBridgeReadyResult> {
-  const reader = proc.stdout.pipeThrough(createTextDecoderStream()).getReader();
+  const reader = proc.stdout
+    .pipeThrough(
+      new TextDecoderStream() as TransformStream<
+        AllowSharedBufferSource,
+        string
+      >,
+    )
+    .getReader();
   const decoder = lineDecoder();
   const stdoutTail: string[] = [];
   const deadline = Date.now() + timeoutMs;
