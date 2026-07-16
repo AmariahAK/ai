@@ -51,6 +51,54 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send explicit audio/mp4 input as an m4a file', async () => {
+    prepareJsonFixtureResponse('openai-transcription-issue-14721-audio-mp4');
+
+    const result = await provider
+      .transcription('gpt-4o-mini-transcribe')
+      .doGenerate({
+        audio: new Uint8Array([0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70]),
+        mediaType: 'audio/mp4',
+      });
+
+    const requestBody = await server.calls[0].requestBodyMultipart;
+    expect(requestBody?.file).toBeInstanceOf(File);
+    expect(requestBody?.file).toMatchObject({
+      name: 'audio.m4a',
+      type: 'audio/mp4',
+    });
+    expect(result.text).toContain('steep learning curve');
+  });
+
+  it('should surface the live unsupported-format response for m4a bytes mislabeled as wav', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'error',
+      status: 400,
+      body: fs.readFileSync(
+        'src/transcription/__fixtures__/openai-transcription-issue-14721-audio-wav-error.json',
+        'utf8',
+      ),
+    };
+
+    await expect(
+      provider.transcription('gpt-4o-mini-transcribe').doGenerate({
+        audio: new Uint8Array([0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70]),
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toMatchObject({
+      message: 'This model does not support the format you provided.',
+      responseBody: expect.stringContaining('unsupported_format'),
+      statusCode: 400,
+    });
+
+    const requestBody = await server.calls[0].requestBodyMultipart;
+    expect(requestBody?.file).toBeInstanceOf(File);
+    expect(requestBody?.file).toMatchObject({
+      name: 'audio.wav',
+      type: 'audio/wav',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
