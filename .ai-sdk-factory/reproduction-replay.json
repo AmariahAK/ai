@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 11023,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/write-to-server-response-unhandled-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/write-to-server-response-unhandled-error.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED: pipeTextStreamToResponse returned before the stream failed; the caller catch was bypassed and AI_InvalidResponseDataError became an unhandled rejection."
+  }
+}
