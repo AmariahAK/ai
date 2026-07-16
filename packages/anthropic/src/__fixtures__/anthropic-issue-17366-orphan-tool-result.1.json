@@ -1,0 +1,94 @@
+{
+  "request": {
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 32,
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Use web search and the client tool."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "server_tool_use",
+            "id": "srvtoolu_01FvCG2mjosttzrL4Lnb5mHy",
+            "name": "web_search",
+            "input": {}
+          },
+          {
+            "type": "web_search_tool_result",
+            "tool_use_id": "srvtoolu_01FvCG2mjosttzrL4Lnb5mHy",
+            "content": {
+              "type": "web_search_tool_result_error",
+              "error_code": "invalid_tool_input"
+            }
+          },
+          {
+            "type": "server_tool_use",
+            "id": "srvtoolu_01Issue17366Deferred",
+            "name": "web_search",
+            "input": {
+              "query": "continue after the client tool"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "toolu_01Issue17366ClientTool",
+            "name": "client_tool",
+            "input": {}
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "srvtoolu_01FvCG2mjosttzrL4Lnb5mHy",
+            "content": "SDK local input validation failed",
+            "is_error": true
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "toolu_01Issue17366ClientTool",
+            "content": "client tool completed"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "type": "web_search_20250305",
+        "name": "web_search"
+      },
+      {
+        "name": "client_tool",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    ],
+    "tool_choice": {
+      "type": "auto"
+    }
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "messages.2.content.0: unexpected `tool_use_id` found in `tool_result` blocks: srvtoolu_01FvCG2mjosttzrL4Lnb5mHy. Each `tool_result` block must have a corresponding `tool_use` block in the previous message."
+      },
+      "request_id": "req_011Cd65sEszHNbYYRoYTMjZU"
+    }
+  }
+}

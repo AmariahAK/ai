@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17366,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17366-anthropic-orphaned-server-tool-result.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17366-anthropic-orphaned-server-tool-result.ts",
+    "packages/anthropic/src/__fixtures__/anthropic-issue-17366-orphan-tool-result.1.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #17366: messages.2.content.0: unexpected `tool_use_id` found in `tool_result` blocks: srvtoolu_01FvCG2mjosttzrL4Lnb5mHy. Each `tool_result` block must have a corresponding `tool_use` block in the previous message."
+  }
+}
