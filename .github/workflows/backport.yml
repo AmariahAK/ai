@@ -661,6 +661,7 @@ jobs:
 
       - name: Label linked issues for the backported version
         if: steps.check-existing.outputs.existing-pr || steps.create-pr.outputs.backport-pr-url
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -681,32 +682,39 @@ jobs:
               ;;
           esac
 
-          gh api graphql \
-            -f query='
-              query($owner: String!, $name: String!, $number: Int!) {
-                repository(owner: $owner, name: $name) {
-                  pullRequest(number: $number) {
-                    closingIssuesReferences(first: 100) {
-                      nodes {
-                        number
-                        repository {
-                          nameWithOwner
+          if ! LINKED_ISSUES=$(gh api graphql \
+              -f query='
+                query($owner: String!, $name: String!, $number: Int!) {
+                  repository(owner: $owner, name: $name) {
+                    pullRequest(number: $number) {
+                      closingIssuesReferences(first: 100) {
+                        nodes {
+                          number
+                          repository {
+                            nameWithOwner
+                          }
                         }
                       }
                     }
                   }
                 }
-              }
-            ' \
-            -f owner="$OWNER" \
-            -f name="$NAME" \
-            -F number="$PR_NUMBER" \
-            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | [.repository.nameWithOwner, .number] | @tsv' |
-            while IFS=$'\t' read -r ISSUE_REPO ISSUE_NUMBER; do
-              if [ "$ISSUE_REPO" = "$REPO" ]; then
-                gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "$ISSUE_LABEL"
-              fi
-            done
+              ' \
+              -f owner="$OWNER" \
+              -f name="$NAME" \
+              -F number="$PR_NUMBER" \
+              --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | [.repository.nameWithOwner, .number] | @tsv'); then
+            echo "::warning::Could not fetch linked issues for PR #${PR_NUMBER}"
+            exit 0
+          fi
+
+          [ -n "$LINKED_ISSUES" ] || exit 0
+
+          while IFS=$'\t' read -r ISSUE_REPO ISSUE_NUMBER; do
+            [ "$ISSUE_REPO" = "$REPO" ] || continue
+
+            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "$ISSUE_LABEL" \
+              || echo "::warning::Could not add ${ISSUE_LABEL} to issue #${ISSUE_NUMBER}"
+          done <<< "$LINKED_ISSUES"
 
       - name: Remove backport label from original PR
         if: '!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url'
