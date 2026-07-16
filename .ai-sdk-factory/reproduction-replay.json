@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 15652,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/anthropic-json-tool-parallel-use.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/anthropic-json-tool-parallel-use.ts",
+    "packages/anthropic/src/__fixtures__/issue-15652.chunks.txt",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #15652 REPRODUCED: expected 3 parallel searchDocs calls with disableParallelToolUse=false, but observed 0 calls and serialized disable_parallel_tool_use=true."
+  }
+}

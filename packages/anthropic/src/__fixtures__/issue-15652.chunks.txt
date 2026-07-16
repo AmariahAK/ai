@@ -1,0 +1,14 @@
+{"type":"message_start","message":{"model":"claude-sonnet-4-5-20250929","id":"msg_011Cd5V17nzF1TYk1CdtpT1P","type":"message","role":"assistant","content":[],"stop_reason":null,"stop_sequence":null,"stop_details":null,"usage":{"input_tokens":711,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":12,"service_tier":"standard","inference_geo":"not_available"}}      }
+{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01K4GY9uwhsreuBs4rEVCbAL","name":"json","input":{},"caller":{"type":"direct"}}             }
+{"type": "ping"}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}           }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"items\":"}   }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":" [\"qu"}    }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"ery1\",\"q"}          }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"uery2\",\""}             }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"quer"}           }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"y3"}          }
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\"]}"}               }
+{"type":"content_block_stop","index":0      }
+{"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null,"stop_details":null},"usage":{"input_tokens":711,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":35}     }
+{"type":"message_stop"           }
