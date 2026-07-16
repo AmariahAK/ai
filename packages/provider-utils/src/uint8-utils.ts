@@ -31,25 +31,6 @@ export function createTextDecoderStream(): TransformStream<
   });
 }
 
-/**
- * Returns a Uint8Array backed by an ArrayBuffer.
- *
- * Returns the input unchanged when it is already backed by an ArrayBuffer.
- * SharedArrayBuffer-backed and cross-realm inputs are copied into a new
- * ArrayBuffer.
- */
-export function toArrayBufferBackedUint8Array(
-  value: Uint8Array,
-): Uint8Array<ArrayBuffer> {
-  return isArrayBufferBackedUint8Array(value) ? value : new Uint8Array(value);
-}
-
-function isArrayBufferBackedUint8Array(
-  value: Uint8Array,
-): value is Uint8Array<ArrayBuffer> {
-  return value.buffer instanceof ArrayBuffer;
-}
-
 export function convertBase64ToUint8Array(base64String: string) {
   const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const latin1string = atob(base64Url);

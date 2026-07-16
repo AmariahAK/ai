@@ -5,7 +5,6 @@ import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
 import type { ResponseHandler } from './response-handler';
 import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
-import { toArrayBufferBackedUint8Array } from './uint8-utils';
 import { withUserAgentSuffix } from './with-user-agent-suffix';
 import { VERSION } from './version';
 
@@ -103,9 +102,7 @@ export const postToApi = async <T>({
         `ai-sdk/provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
-      body: ArrayBuffer.isView(body.content)
-        ? toArrayBufferBackedUint8Array(body.content)
-        : body.content,
+      body: body.content as string | FormData | Uint8Array<ArrayBuffer>,
       signal: abortSignal,
     });
 

@@ -4,7 +4,6 @@ import {
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
   postFormDataToApi,
-  toArrayBufferBackedUint8Array,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -44,7 +43,7 @@ export class OpenAISkills implements SkillsV4 {
       const content = convertInlineFileDataToUint8Array(file.data);
       formData.append(
         'files[]',
-        new Blob([toArrayBufferBackedUint8Array(content)]),
+        new Blob([content as Uint8Array<ArrayBuffer>]),
         file.path,
       );
     }

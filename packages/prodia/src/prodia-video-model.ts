@@ -11,7 +11,6 @@ import {
   postFormDataToApi,
   postToApi,
   resolve,
-  toArrayBufferBackedUint8Array,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import {
@@ -93,7 +92,7 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
       );
       formData.append(
         'input',
-        new Blob([toArrayBufferBackedUint8Array(imageData.bytes)], {
+        new Blob([imageData.bytes as Uint8Array<ArrayBuffer>], {
           type: imageData.mediaType,
         }),
         'input' + getExtension(imageData.mediaType),

@@ -14,7 +14,6 @@ import {
   postFormDataToApi,
   postJsonToApi,
   serializeModelOptions,
-  toArrayBufferBackedUint8Array,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -206,7 +205,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       options.audio instanceof Uint8Array
-        ? new Blob([toArrayBufferBackedUint8Array(options.audio)])
+        ? new Blob([options.audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(options.audio)]);
 
     const fileExtension = mediaTypeToExtension(options.mediaType);

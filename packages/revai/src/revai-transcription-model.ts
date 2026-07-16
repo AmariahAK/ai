@@ -13,7 +13,6 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   serializeModelOptions,
-  toArrayBufferBackedUint8Array,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -74,7 +73,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([toArrayBufferBackedUint8Array(audio)])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);

@@ -1,7 +1,4 @@
-import {
-  safeParseJSON,
-  toArrayBufferBackedUint8Array,
-} from '@ai-sdk/provider-utils';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import type {
   RealtimeClientEvent,
   RealtimeModel,
@@ -98,11 +95,7 @@ export class BrowserRealtimeTransport {
   sendRaw(data: unknown): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       if (ArrayBuffer.isView(data)) {
-        this.ws.send(
-          toArrayBufferBackedUint8Array(
-            new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-          ),
-        );
+        this.ws.send(data as ArrayBufferView<ArrayBuffer>);
       } else if (
         typeof data === 'string' ||
         data instanceof ArrayBuffer ||
