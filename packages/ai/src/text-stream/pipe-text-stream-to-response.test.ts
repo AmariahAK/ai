@@ -9,7 +9,7 @@ describe('pipeTextStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeTextStreamToResponse({
+    await pipeTextStreamToResponse({
       response: mockResponse,
       status: 200,
       statusText: 'OK',
@@ -18,9 +18,6 @@ describe('pipeTextStreamToResponse', () => {
       },
       stream: convertArrayToReadableStream(['test-data']),
     });
-
-    // Wait for the stream to finish writing
-    await mockResponse.waitForEnd();
 
     // Verify response properties
     expect(mockResponse.statusCode).toBe(200);
@@ -41,7 +38,7 @@ describe('pipeTextStreamToResponse', () => {
   it('can pipe a stream created by toTextStream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeTextStreamToResponse({
+    await pipeTextStreamToResponse({
       response: mockResponse,
       stream: toTextStream({
         stream: convertArrayToReadableStream([
@@ -53,11 +50,26 @@ describe('pipeTextStreamToResponse', () => {
       }),
     });
 
-    await mockResponse.waitForEnd();
-
     expect(mockResponse.getDecodedChunks()).toStrictEqual([
       'Hello',
       ', world!',
     ]);
+  });
+
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const streamError = new Error('stream read failed');
+    const stream = new ReadableStream<string>({
+      pull() {
+        throw streamError;
+      },
+    });
+
+    await expect(
+      pipeTextStreamToResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(streamError);
   });
 });

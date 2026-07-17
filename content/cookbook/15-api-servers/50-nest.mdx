@@ -114,7 +114,7 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    pipeTextStreamToResponse({
+    await pipeTextStreamToResponse({
       response: res,
       stream: toTextStream({ stream: result.stream }),
     });

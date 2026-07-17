@@ -16,15 +16,13 @@ describe('writeToServerResponse', () => {
       },
     });
 
-    writeToServerResponse({
+    await writeToServerResponse({
       response: mockResponse,
       status: 200,
       statusText: 'OK',
       headers: { 'Content-Type': 'text/plain' },
       stream,
     });
-
-    await mockResponse.waitForEnd();
 
     expect(mockResponse.statusCode).toBe(200);
     expect(mockResponse.statusMessage).toBe('OK');
@@ -75,7 +73,7 @@ describe('writeToServerResponse', () => {
         },
       });
 
-      writeToServerResponse({
+      const writePromise = writeToServerResponse({
         response: mockResponse,
         status: 200,
         stream,
@@ -112,6 +110,7 @@ describe('writeToServerResponse', () => {
       // Close the stream
       readyToEnqueue!(null);
       await vi.runAllTimersAsync();
+      await writePromise;
 
       expect(mockResponse.ended).toBe(true);
 
@@ -142,15 +141,13 @@ describe('writeToServerResponse', () => {
       'X-Example-Chat-Title': 'My Conversation',
     };
 
-    writeToServerResponse({
+    await writeToServerResponse({
       response: mockResponse,
       status: 200,
       statusText: undefined,
       headers: expectedHeaders,
       stream,
     });
-
-    await mockResponse.waitForEnd();
 
     expect(mockResponse.statusCode).toBe(200);
     expect(mockResponse.headers).toEqual(expectedHeaders);
@@ -173,15 +170,13 @@ describe('writeToServerResponse', () => {
       'X-Example-Chat-Title': 'New Chat Session',
     };
 
-    writeToServerResponse({
+    await writeToServerResponse({
       response: mockResponse,
       status: 201,
       statusText: 'Created',
       headers: expectedHeaders,
       stream,
     });
-
-    await mockResponse.waitForEnd();
 
     expect(mockResponse.statusCode).toBe(201);
     expect(mockResponse.statusMessage).toBe('Created');
@@ -205,18 +200,35 @@ describe('writeToServerResponse', () => {
       'X-Example-Message': 'Hello World',
     };
 
-    writeToServerResponse({
+    await writeToServerResponse({
       response: mockResponse,
       headers: expectedHeaders,
       stream,
     });
 
-    await mockResponse.waitForEnd();
-
     expect(mockResponse.statusCode).toBe(200);
     expect(mockResponse.headers).toEqual(expectedHeaders);
     expect(mockResponse.ended).toBe(true);
     expect(mockResponse.writtenChunks).toHaveLength(1);
+  });
+
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const streamError = new Error('stream read failed');
+    const stream = new ReadableStream<Uint8Array>({
+      pull() {
+        throw streamError;
+      },
+    });
+
+    await expect(
+      writeToServerResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(streamError);
+
+    expect(mockResponse.ended).toBe(true);
   });
 });
 
