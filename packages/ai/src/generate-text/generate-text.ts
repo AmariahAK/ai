@@ -37,6 +37,7 @@ import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
+import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import type { Output } from './output';
@@ -337,11 +338,17 @@ A function that attempts to repair a tool call that failed to parse.
             download,
           });
 
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolSet = filterActiveTools({
+            tools,
+            activeTools: stepActiveTools,
+          });
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools,
             });
 
           currentModelResponse = await retry(() =>
@@ -462,7 +469,7 @@ A function that attempts to repair a tool call that failed to parse.
               .map(toolCall =>
                 parseToolCall({
                   toolCall,
-                  tools,
+                  tools: stepToolSet,
                   repairToolCall,
                   system,
                   messages: stepInputMessages,
@@ -476,7 +483,7 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = stepToolSet![toolCall.toolName];
             if (tool.onInputStart != null) {
               await tool.onInputStart({
                 toolCallId: toolCall.toolCallId,
@@ -521,13 +528,13 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => !toolCall.providerExecuted,
           );
 
-          if (tools != null) {
+          if (stepToolSet != null) {
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
                   toolCall => !toolCall.invalid,
                 ),
-                tools,
+                tools: stepToolSet,
                 tracer,
                 telemetry,
                 messages: stepInputMessages,
@@ -548,7 +555,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               content: stepContent,
-              tools,
+              tools: stepToolSet,
             }),
           );
 
