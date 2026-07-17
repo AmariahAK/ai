@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 11043,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11043-tool-input-callback-order.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11043-tool-input-callback-order.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #11043 REPRODUCED: onInputAvailable was called without a preceding onInputStart"
+  }
+}
