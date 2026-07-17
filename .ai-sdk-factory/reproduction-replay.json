@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 17334,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17334.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17334.ts",
+    "packages/mcp/src/tool/__fixtures__/aws-signin-oauth-metadata.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #17334 reproduced: OAuth metadata without code_challenge_methods_supported was rejected before Dynamic Client Registration"
+  }
+}
