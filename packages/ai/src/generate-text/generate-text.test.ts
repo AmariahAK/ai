@@ -2149,6 +2149,20 @@ describe('generateText', () => {
             "options": {
               "abortSignal": undefined,
               "experimental_context": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
               "input": {
                 "value": "value",
               },

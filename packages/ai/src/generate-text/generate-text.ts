@@ -477,6 +477,15 @@ A function that attempts to repair a tool call that failed to parse.
             }
 
             const tool = tools![toolCall.toolName];
+            if (tool.onInputStart != null) {
+              await tool.onInputStart({
+                toolCallId: toolCall.toolCallId,
+                messages: stepInputMessages,
+                abortSignal,
+                experimental_context,
+              });
+            }
+
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: toolCall.input,
