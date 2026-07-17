@@ -421,9 +421,9 @@ describe('detectMediaType signature matching', () => {
     // the base64 and raw-byte paths must agree.
     it('detects an ID3-tagged MP3 whose tag is at the scan limit', () => {
       const atLimit = buildID3Mp3(MAX_ID3_TAG_BYTES);
-      expect(
-        detectMediaType({ data: atLimit, topLevelType: 'audio' }),
-      ).toBe('audio/mpeg');
+      expect(detectMediaType({ data: atLimit, topLevelType: 'audio' })).toBe(
+        'audio/mpeg',
+      );
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(atLimit),
