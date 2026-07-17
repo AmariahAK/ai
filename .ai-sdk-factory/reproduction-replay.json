@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 13733,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/ui-message-chunk-forward-compatibility.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/ui-message-chunk-forward-compatibility.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "FORWARD_COMPATIBILITY_BUG: DefaultChatTransport rejected newer server fields on known chunk types: providerMetadata, toolMetadata."
+  }
+}
