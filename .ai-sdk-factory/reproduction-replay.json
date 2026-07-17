@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 12878,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12878-generate-text-abort.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-12878-generate-text-abort.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: generateText returned normally after abort during tool execution"
+  }
+}
