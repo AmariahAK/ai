@@ -1,10 +1,39 @@
 import { describe, expect, it } from 'vitest';
+import { hashCanonical, toBase64url } from '../util/canonical-hash';
 import {
   signToolApproval,
   verifyToolApprovalSignature,
 } from './tool-approval-signature';
 
 const secret = 'test-secret-key-for-hmac-signing';
+
+// Produces a signature in the legacy newline-joined payload format that the
+// pre-JSON version emitted, so the backwards-compat fallback can be tested.
+async function signLegacy({
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<string> {
+  const inputDigest = await hashCanonical(input);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const payload = new TextEncoder().encode(
+    `${approvalId}\n${toolCallId}\n${toolName}\n${inputDigest}`,
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, payload);
+  return toBase64url(new Uint8Array(sig));
+}
 
 describe('signToolApproval + verifyToolApprovalSignature', () => {
   const baseParams = {
@@ -160,6 +189,40 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
     const signature = await signToolApproval({ secret, ...signed });
     expect(
       await verifyToolApprovalSignature({ secret, signature, ...retupled }),
+    ).toBe(false);
+  });
+
+  // Backwards compatibility with pre-JSON signatures.
+  it('should still verify a legacy newline-format signature when no field contains a newline', async () => {
+    const legacy = await signLegacy(baseParams);
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature: legacy,
+        ...baseParams,
+      }),
+    ).toBe(true);
+  });
+
+  // The legacy fallback must not reopen the collision: a legacy signature over
+  // a newline-bearing tool cannot be reused for a retupled tuple, because the
+  // retupled tuple has a newline in a field and the fallback is refused.
+  it('should not accept a legacy signature through the retupling collision', async () => {
+    const legacy = await signLegacy({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'searchDocs\ndeleteFile',
+      input: { path: '/tmp/target' },
+    });
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature: legacy,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1\nsearchDocs',
+        toolName: 'deleteFile',
+        input: { path: '/tmp/target' },
+      }),
     ).toBe(false);
   });
 });

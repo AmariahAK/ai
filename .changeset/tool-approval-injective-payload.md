@@ -11,3 +11,8 @@ serialize to identical bytes, allowing a signed approval to verify against a
 different tuple. The payload is now serialized with `JSON.stringify` (with a
 versioned domain-separation prefix), which escapes delimiter/control characters
 and makes the encoding injective.
+
+Verification remains backwards compatible: a signature in the old format still
+verifies, but only when no field contains the `\n` delimiter (the condition
+that made the old format ambiguous), so a pending approval that straddles an
+upgrade is not rejected while the collision stays closed.
