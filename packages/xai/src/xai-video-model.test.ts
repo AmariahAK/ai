@@ -1,5 +1,6 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import * as fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
 
@@ -21,6 +22,14 @@ const doneStatusResponse = {
   model: 'grok-imagine-video',
   progress: 100,
 };
+
+const livePendingStatusResponse = JSON.parse(
+  fs.readFileSync('src/__fixtures__/xai-video-status-pending.1.json', 'utf8'),
+);
+
+const liveDoneStatusResponse = JSON.parse(
+  fs.readFileSync('src/__fixtures__/xai-video-status-done.1.json', 'utf8'),
+);
 
 const defaultOptions = {
   prompt,
@@ -762,6 +771,50 @@ describe('XaiVideoModel', () => {
   });
 
   describe('error handling', () => {
+    it('should preserve unsuccessful polling status handling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          code: 'status_error',
+          error: 'status endpoint failed',
+        }),
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        message: 'status_error: status endpoint failed',
+        statusCode: 500,
+      });
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should preserve malformed HTTP 200 completion handling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 200,
+        body: '{',
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'Invalid JSON response',
+      );
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
     it('should throw when status is expired', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
@@ -1443,6 +1496,82 @@ describe('XaiVideoModel', () => {
   });
 
   describe('polling behaviour', () => {
+    it.each([
+      {
+        mode: 'generation',
+        providerOptions: {
+          xai: { pollIntervalMs: 10, pollTimeoutMs: 5000 },
+        },
+      },
+      {
+        mode: 'editing',
+        providerOptions: {
+          xai: {
+            mode: 'edit-video' as const,
+            videoUrl: 'https://example.com/input.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      },
+    ])(
+      'should treat an empty HTTP 202 as pending for $mode',
+      async ({ providerOptions }) => {
+        server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+          callNumber,
+        }) =>
+          callNumber === 1
+            ? { type: 'empty', status: 202 }
+            : { type: 'json-value', body: liveDoneStatusResponse };
+
+        const model = createModel();
+        const result = await model.doGenerate({
+          ...defaultOptions,
+          providerOptions,
+        });
+
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: liveDoneStatusResponse.video.url,
+          mediaType: 'video/mp4',
+        });
+        expect(server.calls).toHaveLength(3);
+      },
+    );
+
+    it('should time out while repeatedly receiving empty HTTP 202 responses', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'empty',
+        status: 202,
+      };
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: { pollIntervalMs: 10, pollTimeoutMs: 30 },
+          },
+        }),
+      ).rejects.toThrow('timed out');
+    });
+
+    it('should honor abort after an empty HTTP 202 response', async () => {
+      const abortController = new AbortController();
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = () => {
+        queueMicrotask(() => abortController.abort());
+        return { type: 'empty', status: 202 };
+      };
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow(/aborted/i);
+    });
+
     it('should retry polling on pending before resolving done', async () => {
       // callNumber is global across all URLs in the test.
       // Call 0 = POST /generations. Polls start at callNumber 1.
@@ -1453,7 +1582,7 @@ describe('XaiVideoModel', () => {
         if (callNumber < 3) {
           return {
             type: 'json-value',
-            body: { status: 'pending', model: 'grok-imagine-video' },
+            body: livePendingStatusResponse,
           };
         }
         return { type: 'json-value', body: doneStatusResponse };
