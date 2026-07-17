@@ -312,6 +312,10 @@ A function that attempts to repair a tool call that failed to parse.
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
         do {
+          if (steps.length > 0) {
+            abortSignal?.throwIfAborted();
+          }
+
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
