@@ -66,6 +66,90 @@ describe('XaiResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should let the model inspect an image returned by a tool', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          'src/responses/__fixtures__/issue-17381-tool-result-image.live.json',
+          'utf8',
+        ),
+      );
+      prepareJsonResponse(fixture.sdkFinalResponse);
+
+      const result = await createModel('grok-4.5').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Read the exact code in the image returned by the tool.',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'inspectImage',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'inspectImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Read the exact code in the attached image. If there is no attached image, answer exactly NO_IMAGE.',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_image_data',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect.soft(result.content).toEqual([
+        {
+          type: 'text',
+          text: fixture.correctedText,
+        },
+      ]);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect
+        .soft(
+          requestBody.input.find(
+            (item: { type: string }) => item.type === 'function_call_output',
+          ).output,
+        )
+        .toEqual([
+          {
+            type: 'input_text',
+            text: 'Read the exact code in the attached image. If there is no attached image, answer exactly NO_IMAGE.',
+          },
+          {
+            type: 'input_image',
+            image_url: 'data:image/png;base64,base64_image_data',
+          },
+        ]);
+    });
+
     describe('basic text generation', () => {
       it('should generate text content', async () => {
         prepareJsonResponse({

@@ -1,0 +1,166 @@
+{
+  "model": "grok-4.5",
+  "sdkText": "NO_IMAGE",
+  "correctedText": "BANANA",
+  "sdkFunctionCallOutput": "Read the exact code in the attached image. If there is no attached image, answer exactly NO_IMAGE.",
+  "correctedFunctionCallOutput": [
+    {
+      "type": "input_text",
+      "text": "Read the exact code in the attached image. If there is no attached image, answer exactly NO_IMAGE."
+    },
+    {
+      "type": "input_image",
+      "image_url": "<data:image/png;base64,...>"
+    }
+  ],
+  "sdkFinalResponse": {
+    "created_at": 1784267145,
+    "completed_at": 1784267145,
+    "id": "9a215677-f489-9b9f-b547-6e249ba27001",
+    "max_output_tokens": 100,
+    "model": "grok-4.5",
+    "object": "response",
+    "output": [
+      {
+        "content": [
+          {
+            "type": "output_text",
+            "text": "NO_IMAGE",
+            "logprobs": [],
+            "annotations": []
+          }
+        ],
+        "id": "msg_9a215677-f489-9b9f-b547-6e249ba27001",
+        "role": "assistant",
+        "type": "message",
+        "status": "completed"
+      }
+    ],
+    "parallel_tool_calls": true,
+    "previous_response_id": null,
+    "reasoning": {
+      "effort": "high",
+      "summary": "detailed"
+    },
+    "temperature": 0,
+    "text": {
+      "format": {
+        "type": "text"
+      }
+    },
+    "tool_choice": "auto",
+    "tools": [],
+    "top_p": 0.95,
+    "usage": {
+      "input_tokens": 267,
+      "input_tokens_details": {
+        "cached_tokens": 256
+      },
+      "output_tokens": 3,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 270,
+      "num_sources_used": 0,
+      "num_server_side_tools_used": 0,
+      "cost_in_usd_ticks": 1680000,
+      "context_details": {
+        "input_tokens": 267,
+        "output_tokens": 3
+      }
+    },
+    "user": null,
+    "incomplete_details": null,
+    "status": "completed",
+    "store": true,
+    "metadata": {
+      "system_fingerprint": "fp_a39489019fa99b6e"
+    },
+    "background": false,
+    "service_tier": "default",
+    "truncation": "disabled",
+    "top_logprobs": 0,
+    "presence_penalty": 0,
+    "frequency_penalty": 0,
+    "prompt_cache_key": null,
+    "max_tool_calls": null,
+    "safety_identifier": null,
+    "error": null,
+    "instructions": null
+  },
+  "correctedResponse": {
+    "created_at": 1784267146,
+    "completed_at": 1784267146,
+    "id": "b21fea47-0dd2-9d8c-9c51-819a18911112",
+    "max_output_tokens": 100,
+    "model": "grok-4.5",
+    "object": "response",
+    "output": [
+      {
+        "content": [
+          {
+            "type": "output_text",
+            "text": "BANANA",
+            "logprobs": [],
+            "annotations": []
+          }
+        ],
+        "id": "msg_b21fea47-0dd2-9d8c-9c51-819a18911112",
+        "role": "assistant",
+        "type": "message",
+        "status": "completed"
+      }
+    ],
+    "parallel_tool_calls": true,
+    "previous_response_id": null,
+    "reasoning": {
+      "effort": "high",
+      "summary": "detailed"
+    },
+    "temperature": 0,
+    "text": {
+      "format": {
+        "type": "text"
+      }
+    },
+    "tool_choice": "auto",
+    "tools": [],
+    "top_p": 0.95,
+    "usage": {
+      "input_tokens": 532,
+      "input_tokens_details": {
+        "cached_tokens": 128
+      },
+      "output_tokens": 2,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 534,
+      "num_sources_used": 0,
+      "num_server_side_tools_used": 0,
+      "cost_in_usd_ticks": 8840000,
+      "context_details": {
+        "input_tokens": 532,
+        "output_tokens": 2
+      }
+    },
+    "user": null,
+    "incomplete_details": null,
+    "status": "completed",
+    "store": true,
+    "metadata": {
+      "system_fingerprint": "fp_a39489019fa99b6e"
+    },
+    "background": false,
+    "service_tier": "default",
+    "truncation": "disabled",
+    "top_logprobs": 0,
+    "presence_penalty": 0,
+    "frequency_penalty": 0,
+    "prompt_cache_key": null,
+    "max_tool_calls": null,
+    "safety_identifier": null,
+    "error": null,
+    "instructions": null
+  }
+}
