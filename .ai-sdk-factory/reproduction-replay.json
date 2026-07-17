@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 13733,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/ui-message-chunk-forward-compatibility.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/ui-message-chunk-forward-compatibility.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Forward compatibility failure: DefaultChatTransport rejected optionalFieldFromNewerServer with AI_TypeValidationError."
+  }
+}
