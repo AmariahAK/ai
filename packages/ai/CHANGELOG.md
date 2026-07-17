@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.217
+
+### Patch Changes
+
+- 01edf75: Propagate abort reasons when generation is cancelled during tool execution.
+
 ## 5.0.216
 
 ### Patch Changes
