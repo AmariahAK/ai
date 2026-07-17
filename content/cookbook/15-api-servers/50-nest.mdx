@@ -36,7 +36,7 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    pipeUIMessageStreamToResponse({
+    await pipeUIMessageStreamToResponse({
       response: res,
       stream: toUIMessageStream({ stream: result.stream }),
     });
@@ -91,7 +91,7 @@ export class AppController {
         );
       },
     });
-    pipeUIMessageStreamToResponse({ stream, response });
+    await pipeUIMessageStreamToResponse({ stream, response });
   }
 }
 ```

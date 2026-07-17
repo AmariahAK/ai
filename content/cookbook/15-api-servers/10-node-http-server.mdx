@@ -41,7 +41,7 @@ createServer(async (req, res) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  pipeUIMessageStreamToResponse({
+  await pipeUIMessageStreamToResponse({
     response: res,
     stream: toUIMessageStream({ stream: result.stream }),
   });
@@ -95,7 +95,7 @@ createServer(async (req, res) => {
         },
       });
 
-      pipeUIMessageStreamToResponse({ stream, response: res });
+      await pipeUIMessageStreamToResponse({ stream, response: res });
 
       break;
     }

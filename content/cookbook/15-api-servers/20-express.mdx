@@ -43,7 +43,7 @@ app.post('/', async (req: Request, res: Response) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  pipeUIMessageStreamToResponse({
+  await pipeUIMessageStreamToResponse({
     response: res,
     stream: toUIMessageStream({ stream: result.stream }),
   });
@@ -70,7 +70,7 @@ import express, { Request, Response } from 'express';
 const app = express();
 
 app.post('/custom-data-parts', async (req: Request, res: Response) => {
-  pipeUIMessageStreamToResponse({
+  await pipeUIMessageStreamToResponse({
     response: res,
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
