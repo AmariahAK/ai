@@ -715,7 +715,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           // when a json response tool is used, the tool call is returned as text,
           // so we ignore the text content:
           if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+            const webSearchCitations = part.citations?.filter(
+              citation => citation.type === 'web_search_result_location',
+            );
+
+            content.push({
+              type: 'text',
+              text: part.text,
+              ...(webSearchCitations != null &&
+                webSearchCitations.length > 0 && {
+                  providerMetadata: {
+                    anthropic: {
+                      citations: webSearchCitations,
+                    },
+                  },
+                }),
+            });
 
             // Process citations if present
             if (part.citations) {
@@ -1138,7 +1153,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           providerExecuted?: boolean;
           firstDelta: boolean;
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; citations: Citation[] }
+      | { type: 'reasoning' }
     > = {};
 
     let rawUsage: JSONObject | undefined = undefined;
@@ -1212,7 +1228,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               switch (contentBlockType) {
                 case 'text': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1244,7 +1263,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 }
 
                 case 'compaction': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1259,7 +1281,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 case 'tool_use': {
                   contentBlocks[value.index] = usesJsonResponseTool
-                    ? { type: 'text' }
+                    ? { type: 'text', citations: [] }
                     : {
                         type: 'tool-call',
                         toolCallId: value.content_block.id,
@@ -1482,6 +1504,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
+                      ...(contentBlock.citations.length > 0 && {
+                        providerMetadata: {
+                          anthropic: {
+                            citations: contentBlock.citations,
+                          },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -1640,6 +1669,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 case 'citations_delta': {
                   const citation = value.delta.citation;
+                  const contentBlock = contentBlocks[value.index];
+
+                  if (
+                    contentBlock?.type === 'text' &&
+                    citation.type === 'web_search_result_location'
+                  ) {
+                    contentBlock.citations.push(citation);
+                  }
+
                   const source = createCitationSource(
                     citation,
                     citationDocuments,
