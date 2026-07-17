@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 17379,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/anthropic-web-search-citation-replay.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/anthropic-web-search-citation-replay.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED: turn-2 replay dropped Anthropic web_search_result_location citations"
+  }
+}
