@@ -24,6 +24,7 @@
 "@ai-sdk/policy-opa": patch
 "@ai-sdk/togetherai": patch
 "@ai-sdk/anthropic": patch
+"@ai-sdk/cartesia": patch
 "@ai-sdk/bytedance": patch
 "@ai-sdk/deepinfra": patch
 "@ai-sdk/fireworks": patch

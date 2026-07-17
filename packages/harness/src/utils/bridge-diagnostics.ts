@@ -170,7 +170,14 @@ export async function drainBridgeProcessStream(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream.getReader();
+    const reader = stream
+      .pipeThrough(
+        new TextDecoderStream() as TransformStream<
+          AllowSharedBufferSource,
+          string
+        >,
+      )
+      .getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;

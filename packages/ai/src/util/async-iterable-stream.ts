@@ -43,9 +43,9 @@ export function asAsyncIterableStream<T>(
    * Implements the async iterator protocol for the stream.
    * Ensures proper cleanup (cancelling and releasing the reader) on completion, early exit, or error.
    */
-  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = function (
+  (stream as AsyncIterable<T>)[Symbol.asyncIterator] = function (
     this: ReadableStream<T>,
-  ): ReadableStreamAsyncIterator<T> {
+  ): AsyncIterator<T> {
     const reader = this.getReader();
 
     let finished = false;
@@ -68,7 +68,7 @@ export function asAsyncIterableStream<T>(
       }
     }
 
-    const iterator: ReadableStreamAsyncIterator<T> = {
+    return {
       /**
        * Reads the next chunk from the stream.
        * @returns A promise resolving to the next IteratorResult.
@@ -108,17 +108,7 @@ export function asAsyncIterableStream<T>(
         await cleanup(true);
         throw err;
       },
-
-      [Symbol.asyncIterator]() {
-        return this;
-      },
-
-      async [Symbol.asyncDispose](): Promise<void> {
-        await cleanup(true);
-      },
     };
-
-    return iterator;
   };
 
   return stream as AsyncIterableStream<T>;
