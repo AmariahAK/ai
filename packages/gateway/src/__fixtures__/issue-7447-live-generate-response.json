@@ -1,0 +1,58 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "gateway-ok",
+      "providerMetadata": {
+        "openai": {
+          "itemId": "msg_0d0584ea56718fea016a5a30a3e2b08193ba202fe0c65832ac"
+        }
+      }
+    }
+  ],
+  "finishReason": "stop",
+  "usage": {
+    "inputTokens": 13,
+    "outputTokens": 3,
+    "totalTokens": 16,
+    "reasoningTokens": 0,
+    "cachedInputTokens": 0
+  },
+  "providerMetadata": {
+    "openai": {
+      "responseId": "resp_0d0584ea56718fea016a5a30a39bd88193972602f1baa52735",
+      "serviceTier": "default",
+      "usage": {
+        "cacheWriteTokens": 0
+      }
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "openai/gpt-4.1-nano",
+        "resolvedProvider": "openai",
+        "canonicalSlug": "openai/gpt-4.1-nano",
+        "finalProvider": "openai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "openai/gpt-4.1-nano",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "openai",
+                "credentialType": "system",
+                "success": true,
+                "statusCode": 200
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "cost": "0.0000025",
+      "generationId": "gen_01KXR4VZEFCK523D2YWVJJTJ8Y"
+    }
+  },
+  "warnings": []
+}
