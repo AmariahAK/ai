@@ -18,6 +18,9 @@ async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
   );
 }
 
+// Serialize with JSON so the encoding is injective: fields may contain any
+// character (including newlines), and escaping + array structure keeps field
+// boundaries unambiguous. The version prefix provides domain separation.
 function buildPayload(
   approvalId: string,
   toolCallId: string,
@@ -25,7 +28,13 @@ function buildPayload(
   inputDigest: string,
 ): Uint8Array {
   return encoder.encode(
-    `${approvalId}\n${toolCallId}\n${toolName}\n${inputDigest}`,
+    JSON.stringify([
+      'ai-sdk-tool-approval-v1',
+      approvalId,
+      toolCallId,
+      toolName,
+      inputDigest,
+    ]),
   );
 }
 

@@ -94,4 +94,72 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
     });
     expect(sig1).toBe(sig2);
   });
+
+  // A newline in toolName must not be retupleable into toolCallId to forge a
+  // matching signature for a different tool.
+  it('should not collide when a newline in toolName is retupled into toolCallId', async () => {
+    const signed = {
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'searchDocs\ndeleteFile',
+      input: { path: '/tmp/target' },
+    };
+    const retupled = {
+      approvalId: 'approval-1',
+      toolCallId: 'call-1\nsearchDocs',
+      toolName: 'deleteFile',
+      input: { path: '/tmp/target' },
+    };
+
+    const signature = await signToolApproval({ secret, ...signed });
+
+    // The signature issued for the newline-bearing tool must NOT verify against
+    // the retupled tuple that targets a different registered tool.
+    expect(
+      await verifyToolApprovalSignature({ secret, signature, ...retupled }),
+    ).toBe(false);
+
+    // The two tuples must produce distinct signatures.
+    const retupledSignature = await signToolApproval({ secret, ...retupled });
+    expect(signature).not.toBe(retupledSignature);
+
+    // Sanity: each signature still verifies against its own tuple.
+    expect(
+      await verifyToolApprovalSignature({ secret, signature, ...signed }),
+    ).toBe(true);
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature: retupledSignature,
+        ...retupled,
+      }),
+    ).toBe(true);
+  });
+
+  // Any delimiter/control character shifted across a field boundary must fail.
+  it.each([
+    ['newline', '\n'],
+    ['carriage return', '\r'],
+    ['tab', '\t'],
+    ['null byte', '\0'],
+    ['json quote', '"'],
+    ['json backslash', '\\'],
+  ])('should not collide across the %s delimiter', async (_label, delim) => {
+    const signed = {
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: `alpha${delim}beta`,
+      input: { path: '/tmp/target' },
+    };
+    const retupled = {
+      approvalId: 'approval-1',
+      toolCallId: `call-1${delim}alpha`,
+      toolName: 'beta',
+      input: { path: '/tmp/target' },
+    };
+    const signature = await signToolApproval({ secret, ...signed });
+    expect(
+      await verifyToolApprovalSignature({ secret, signature, ...retupled }),
+    ).toBe(false);
+  });
 });
