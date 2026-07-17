@@ -684,6 +684,10 @@ export async function generateText<
         >();
 
         do {
+          if (steps.length > 0) {
+            mergedAbortSignal?.throwIfAborted();
+          }
+
           // Set up step timeout if configured
           const stepTimeoutId = setAbortTimeout({
             abortController: stepAbortController,
