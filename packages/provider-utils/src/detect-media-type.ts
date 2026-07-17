@@ -167,19 +167,33 @@ const videoMediaTypeSignatures = [
 ] as const;
 
 const DEFAULT_SNIFF_BYTES = 18;
-// Bounded prefix scanned past an ID3v2 tag; keeps detection O(1) in input size
-// while still covering typical tags with embedded cover art.
-const ID3_MAX_SCAN_BYTES = 128 * 1024;
 
-// Decode/view at most `maxBytes` from the front of the input.
+// Longest signature prefix in the tables above (e.g. image/avif = 12 bytes).
+const MAX_SIGNATURE_BYTES = 12;
+
+// Largest ID3v2 tag (10-byte header + body) skipped to reach the audio frame.
+// Covers typical tags including embedded cover art while keeping the decode
+// bounded and O(1) in the attachment size. Exported for boundary tests.
+export const MAX_ID3_TAG_BYTES = 128 * 1024;
+
+// Total prefix decoded when an ID3 tag is present: the tag plus room for the
+// trailing signature, so a tag right at the size limit stays detectable.
+const ID3_SCAN_BYTES = MAX_ID3_TAG_BYTES + MAX_SIGNATURE_BYTES;
+
+// Decode/view exactly the first `maxBytes` bytes from the front of the input.
+// The base64 and raw-byte paths yield the same length, so detection does not
+// depend on the input's representation.
 function decodePrefix(data: Uint8Array | string, maxBytes: number): Uint8Array {
   if (typeof data !== 'string') {
     return data.length > maxBytes ? data.subarray(0, maxBytes) : data;
   }
-  const maxChars = Math.ceil(maxBytes / 3) * 4; // base64: 4 chars -> 3 bytes
-  return convertBase64ToUint8Array(
+  // base64: 4 chars -> 3 bytes. Decode whole 4-char groups, then trim the 0-2
+  // extra bytes so the result matches the raw-byte path exactly.
+  const maxChars = Math.ceil(maxBytes / 3) * 4;
+  const bytes = convertBase64ToUint8Array(
     data.substring(0, Math.min(data.length, maxChars)),
   );
+  return bytes.length > maxBytes ? bytes.subarray(0, maxBytes) : bytes;
 }
 
 function hasID3(bytes: Uint8Array): boolean {
@@ -217,7 +231,7 @@ function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
   // ID3v2-tagged MP3s carry the audio frame after the tag; scan a bounded
   // prefix past it rather than decoding the whole input.
   if (hasID3(bytes)) {
-    bytes = stripID3(decodePrefix(data, ID3_MAX_SCAN_BYTES));
+    bytes = stripID3(decodePrefix(data, ID3_SCAN_BYTES));
   }
 
   for (const signature of signatures) {
