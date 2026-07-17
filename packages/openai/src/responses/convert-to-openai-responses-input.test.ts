@@ -1316,6 +1316,62 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should convert a function named tool_search as a function call and output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        hasToolSearchTool: false,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'tool_search',
+                input: {
+                  query: 'synthetic query',
+                  limit: 10,
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: { tools: [] },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{"query":"synthetic query","limit":10}",
+            "call_id": "call_123",
+            "name": "tool_search",
+            "type": "function_call",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"tools":[]}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
     it('should default missing tool call input to an empty object', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
