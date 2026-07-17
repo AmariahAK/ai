@@ -41,8 +41,9 @@ function buildPayload(
 // Legacy newline-joined payload. Ambiguous when any field contains the `\n`
 // delimiter, which is why it was replaced; only used as a verify-time fallback
 // guarded on delimiter-free fields.
-// TODO: remove in v8 when backwards compatibility with pre-JSON signatures
-// (approvals signed before the injective format) is no longer needed.
+// TODO(#17494): remove in v8 when backwards compatibility with pre-JSON
+// signatures (approvals signed before the injective format) is no longer
+// needed.
 function buildLegacyPayload(
   approvalId: string,
   toolCallId: string,
@@ -104,7 +105,7 @@ export async function verifyToolApprovalSignature({
   // retupling collision closed (the attack requires a newline in a field)
   // while still verifying benign approvals signed by an older version, e.g. a
   // pending approval that straddles an upgrade.
-  // TODO: remove in v8 (drop buildLegacyPayload and this fallback).
+  // TODO(#17494): remove in v8 (drop buildLegacyPayload and this fallback).
   if (
     !approvalId.includes('\n') &&
     !toolCallId.includes('\n') &&
