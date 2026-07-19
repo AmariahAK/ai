@@ -567,7 +567,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } satisfies GoogleProviderMetadata),
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -613,6 +614,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -690,6 +692,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             }
 
             const value = chunk.value;
+
+            // Emit the provider response id as soon as it appears. Gemini
+            // includes `responseId` on every chunk, so emitting early — rather
+            // than at finish — means the id is captured even if the stream is
+            // aborted or errors mid-way.
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
 
             const usageMetadata = value.usageMetadata;
 
@@ -1527,6 +1541,7 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z.array(
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
@@ -1573,6 +1588,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z
         .array(
           z.object({
