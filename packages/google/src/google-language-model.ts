@@ -693,10 +693,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             const value = chunk.value;
 
-            // Emit the provider response id as soon as it appears. Gemini
-            // includes `responseId` on every chunk, so emitting early — rather
-            // than at finish — means the id is captured even if the stream is
-            // aborted or errors mid-way.
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
               controller.enqueue({
