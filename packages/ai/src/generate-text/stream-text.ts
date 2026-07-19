@@ -2217,6 +2217,17 @@ class DefaultStreamTextResult<
                       }),
                     });
 
+                    // terminate the stream with a proper finish part so
+                    // consumers (fullStream, UI message stream onEnd) observe
+                    // the error termination instead of a stream that ends
+                    // without a finish event:
+                    controller.enqueue({
+                      type: 'finish',
+                      finishReason: 'error',
+                      rawFinishReason: undefined,
+                      totalUsage: addLanguageModelUsage(usage, stepUsage),
+                    });
+
                     clearStepTimeout();
                     clearChunkTimeout();
                     self.closeStream();
@@ -2330,6 +2341,17 @@ class DefaultStreamTextResult<
                         error,
                       });
 
+                      // terminate the stream with a proper finish part so
+                      // consumers (finishReason promise, fullStream,
+                      // UI message stream onEnd) observe the error termination
+                      // instead of a stream that ends without a finish event:
+                      controller.enqueue({
+                        type: 'finish',
+                        finishReason: 'error',
+                        rawFinishReason: undefined,
+                        totalUsage: combinedUsage,
+                      });
+
                       self.closeStream();
                     }
                   } else {
@@ -2367,11 +2389,20 @@ class DefaultStreamTextResult<
       self._initialResponseMessages.reject(error);
       markPromiseAsHandled(self._initialResponseMessages.promise);
 
-      // add an error stream part and close the streams:
+      // add an error stream part, a terminal finish part, and close the
+      // streams. The finish part keeps the stream protocol intact so
+      // consumers (finishReason promise, fullStream, UI message stream
+      // onEnd) observe the error termination:
       self.addStream(
         new ReadableStream({
           start(controller) {
             controller.enqueue({ type: 'error', error });
+            controller.enqueue({
+              type: 'finish',
+              finishReason: 'error',
+              rawFinishReason: undefined,
+              totalUsage: createNullLanguageModelUsage(),
+            });
             controller.close();
           },
         }),

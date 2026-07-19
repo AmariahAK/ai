@@ -475,6 +475,40 @@ describe('createUIMessageStream', () => {
     });
   });
 
+  it('should keep the main stream finish reason when a merged stream errors', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-end', id: '1' });
+        writer.write({ type: 'finish', finishReason: 'stop' });
+
+        // auxiliary merged stream that fails after the main stream finished;
+        // its failure becomes an error chunk without terminating the others
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('auxiliary stream failure'));
+            },
+          }),
+        );
+      },
+      onError: () => 'auxiliary stream failure',
+      onEnd: options => {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toHaveLength(1);
+    expect(recordedOptions[0].finishReason).toBe('stop');
+    expect(recordedOptions[0].isAborted).toBe(false);
+  });
+
   it('should handle onFinish with messages', async () => {
     const recordedOptions: any[] = [];
 

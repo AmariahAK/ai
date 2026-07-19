@@ -45,6 +45,7 @@ import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
+import { NoOutputGeneratedError } from '../error/no-output-generated-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { mockValues } from '../test/mock-values';
@@ -2382,6 +2383,12 @@ describe('streamText', () => {
           type: 'error',
           error: new Error('test error'),
         },
+        {
+          type: 'finish',
+          finishReason: 'error',
+          rawFinishReason: undefined,
+          totalUsage: createNullLanguageModelUsage(),
+        },
       ]);
     });
 
@@ -2582,6 +2589,173 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
       });
+    });
+
+    it('should terminate the stream with an error finish part when the 2nd step fails', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (responseCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: testUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            }
+
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        stopWhen: isStepCount(3),
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(parts.map(part => part.type)).toContain('error');
+      const lastPart = parts[parts.length - 1];
+      expect(lastPart).toMatchObject({
+        type: 'finish',
+        finishReason: 'error',
+      });
+      expect(await result.finishReason).toBe('error');
+    });
+
+    it('should report an error finish reason to the ui message stream when the 2nd step fails', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (responseCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: testUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            }
+
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        stopWhen: isStepCount(3),
+        onError: () => {},
+      });
+
+      const onEnd = vi.fn();
+      await convertReadableStreamToArray(
+        result.toUIMessageStream({ onEnd, onError: () => 'error' }),
+      );
+
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      expect(onEnd.mock.calls[0][0].finishReason).toBe('error');
+      expect(onEnd.mock.calls[0][0].isAborted).toBe(false);
+    });
+
+    it('should terminate the stream with an error finish part when the first request fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(parts.map(part => part.type)).toEqual(['start', 'error', 'finish']);
+      expect(parts[2]).toMatchObject({
+        type: 'finish',
+        finishReason: 'error',
+      });
+    });
+
+    it('should terminate the stream with an error finish part when the model stream produces no output', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      const lastPart = parts[parts.length - 1];
+      expect(lastPart).toMatchObject({
+        type: 'finish',
+        finishReason: 'error',
+      });
+      expect(
+        parts.some(
+          part =>
+            part.type === 'error' &&
+            part.error instanceof NoOutputGeneratedError,
+        ),
+      ).toBe(true);
     });
 
     it('should reject text promise when error is thrown', async () => {
@@ -11259,6 +11433,12 @@ describe('streamText', () => {
         {
           type: 'error',
           error: new Error('test error'),
+        },
+        {
+          type: 'finish',
+          finishReason: 'error',
+          rawFinishReason: undefined,
+          totalUsage: createNullLanguageModelUsage(),
         },
       ]);
     });

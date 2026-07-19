@@ -456,6 +456,132 @@ describe('handleUIMessageStreamFinish', () => {
     });
   });
 
+  describe('finish reason', () => {
+    it('should report the finish reason from the finish chunk', async () => {
+      const onEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish', finishReason: 'stop' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].finishReason).toBe('stop');
+    });
+
+    it('should report the finish reason from an error termination finish chunk', async () => {
+      const onEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Partial' },
+        { type: 'text-end', id: 'text-1' },
+        // terminal error termination from streamText: an error chunk followed
+        // by a finish chunk that carries the error finish reason
+        { type: 'error', errorText: 'Internal server error' },
+        { type: 'finish', finishReason: 'error' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].finishReason).toBe('error');
+      expect(onEndCallback.mock.calls[0][0].isAborted).toBe(false);
+    });
+
+    it('should keep the finish reason undefined when an error chunk arrives without a finish chunk', async () => {
+      const onEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'error', errorText: 'Custom stream error' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      // error chunks are not finish events: the finish reason only comes from
+      // finish chunks, so custom streams that error without finishing report
+      // no finish reason.
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].finishReason).toBeUndefined();
+    });
+
+    it('should not let an auxiliary error chunk overwrite a successful finish reason', async () => {
+      const onEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Done' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish', finishReason: 'stop' },
+        // e.g. a merged auxiliary stream failing after the main stream finished
+        { type: 'error', errorText: 'Auxiliary stream failure' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].finishReason).toBe('stop');
+    });
+
+    it('should keep the previous finish reason when a later finish chunk has none', async () => {
+      const onEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'error', errorText: 'Recovered stream error' },
+        { type: 'finish' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].finishReason).toBeUndefined();
+    });
+  });
+
   describe('onStepFinish callback', () => {
     it('should call onStepEnd when finish-step chunk is encountered', async () => {
       const onStepEndCallback = vi.fn();
