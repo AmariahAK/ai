@@ -99,11 +99,43 @@ export async function convertToLanguageModelPrompt({
   ];
 
   // combine consecutive tool messages into a single tool message
-  const combinedMessages = [];
+  const combinedMessages: typeof messages = [];
   for (const message of messages) {
     if (message.role !== 'tool') {
       combinedMessages.push(message);
       continue;
+    }
+
+    // Propagate message-level providerOptions to the last content part
+    // so they are not lost when tool messages are coalesced.
+    const messageProviderOptions = message.providerOptions;
+    if (
+      messageProviderOptions != null &&
+      message.content.length > 0
+    ) {
+      const lastPart = message.content[message.content.length - 1];
+      if (lastPart.providerOptions == null) {
+        // @ts-expect-error - mutating the part is safe here;
+        // the content array is freshly created per message
+        lastPart.providerOptions = messageProviderOptions;
+      } else {
+        // Merge: part-level keys take precedence over message-level keys
+        // within each provider's options object.
+        const merged: Record<string, Record<string, unknown>> = {
+          ...messageProviderOptions,
+        };
+        for (const [provider, options] of Object.entries(
+          lastPart.providerOptions,
+        )) {
+          if (merged[provider] != null) {
+            merged[provider] = { ...merged[provider], ...options };
+          } else {
+            merged[provider] = options;
+          }
+        }
+        // @ts-expect-error - reconstructing providerOptions shape
+        lastPart.providerOptions = merged;
+      }
     }
 
     const lastCombinedMessage = combinedMessages.at(-1);
